@@ -11,6 +11,7 @@ import Toolbar from "./Toolbar";
 import { Button } from "./ui";
 
 const Editor = lazy(() => import("./Editor"));
+const Wysiwyg = lazy(() => import("./wysiwyg/Wysiwyg"));
 
 const encodings: Record<Encoding, string> = {
   utf8: "UTF-8",
@@ -138,7 +139,18 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onReload, fin
       ) : (
         <div className="relative min-h-0 flex-1">
           {find}
-          {reader}
+          <Suspense fallback={reader}>
+            <Wysiwyg
+              key={tab.id}
+              tab={tab}
+              handleRef={handle}
+              boxRef={preview}
+              onChange={(text) => dispatch({ type: "edit", id: tab.id, text })}
+              onOpenLink={() => {}}
+              onScroll={(scroll) => dispatch({ type: "scroll", id: tab.id, scroll })}
+              onUpdate={() => setTick((n) => n + 1)}
+            />
+          </Suspense>
         </div>
       )}
       <div className="flex h-6 shrink-0 items-center gap-4 border-t border-line px-3.5 text-[11px] text-muted">
