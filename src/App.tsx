@@ -1,21 +1,29 @@
-import { FilePlus, FolderOpen } from "lucide-react";
+import { FilePlus, FileType, FolderOpen, Monitor, Moon, Sun } from "lucide-react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { invoke, on, type FileDoc, type Startup } from "./api";
+import { invoke, on, type FileDoc, type Startup, type Theme } from "./api";
 import { confirm, DialogHost } from "./Dialog";
 import DocView from "./DocView";
+import Menu from "./Menu";
 import { usePersistence } from "./persist";
 import { setLang, t } from "./i18n";
 import Sidebar, { tabName } from "./Sidebar";
 import { dirty, reducer, restoreTabs, type State, type Tab } from "./tabs";
-import { Button } from "./ui";
+import { Button, IconButton } from "./ui";
 
 const empty: State = { tabs: [], active: null, closed: [], collapsed: false };
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+const themes: [Theme, string, typeof Sun][] = [
+  ["system", "System", Monitor],
+  ["light", "Light", Sun],
+  ["dark", "Dark", Moon],
+];
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, empty);
   const [ready, setReady] = useState(false);
   const [finding, setFinding] = useState(0);
+  const [theme, setTheme] = useState<Theme>("system");
+  const [version, setVersion] = useState("");
   useEffect(() => setFinding(0), [state.active]);
   const hash = useRef<string | null>(null);
   const tab = state.tabs.find((x) => x.id === state.active);
@@ -34,6 +42,8 @@ export default function App() {
   useEffect(() => {
     invoke<Startup>("startup").then(async (s) => {
       setLang(s.lang);
+      setTheme(s.theme);
+      setVersion(s.version);
       const paths = s.session.tabs.flatMap((t) => (t.path ? [t.path] : []));
       const docs = await Promise.all(paths.map((path) => invoke<FileDoc | null>("read_file", { path }).catch(() => null)));
       loadedDrafts(s.drafts);
@@ -91,6 +101,13 @@ export default function App() {
     dispatch({ type: "close", id });
   };
 
+  const pickTheme = (theme: Theme) => {
+    setTheme(theme);
+    invoke("set_theme", { theme }).catch(() => {});
+  };
+  const fail = (err: any) => confirm(t("Something went wrong"), String(err?.message ?? err), [t("OK")]);
+  const [, themeLabel, ThemeIcon] = themes.find(([x]) => x === theme)!;
+
   const restore = async () => {
     const entry = current.current.closed[0];
     if (!entry) return;
@@ -137,7 +154,27 @@ export default function App() {
         onClose={close}
         onNew={newDoc}
         onCollapse={() => dispatch({ type: "collapse" })}
-        footer={null}
+        footer={
+          <>
+            <IconButton
+              icon={ThemeIcon}
+              label={t("Theme: {theme}", { theme: t(themeLabel) })}
+              onClick={() => pickTheme(themes[(themes.findIndex(([x]) => x === theme) + 1) % themes.length][0])}
+            />
+            <Menu
+              items={[
+                { label: t("New document"), icon: FilePlus, onClick: newDoc },
+                { label: t("Open…"), icon: FolderOpen, onClick: () => openDialog().catch(fail) },
+                "-",
+                { heading: t("Theme") },
+                ...themes.map(([value, label, icon]) => ({ label: t(label), icon, checked: theme === value, onClick: () => pickTheme(value) })),
+                "-",
+                { label: t("Set as default for .md"), icon: FileType, onClick: () => invoke("set_default_app").catch(fail) },
+              ]}
+              footer={`Simple Markdown Reader ${version}`}
+            />
+          </>
+        }
       />
       <main className="my-2 mr-2 min-w-0 flex-1 overflow-hidden rounded-2xl border border-line bg-surface">
         {tab ? (

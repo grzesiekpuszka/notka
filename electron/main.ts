@@ -1,7 +1,8 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, screen, shell, type Rectangle } from "electron";
 import path from "node:path";
-import type { DocMeta, Session, Startup } from "../src/api";
+import type { DocMeta, Session, Startup, Theme } from "../src/api";
 import { argPaths } from "./args";
+import { setDefaultApp } from "./assoc";
 import { readDoc, writeDoc } from "./files";
 import { serveImages } from "./images";
 import { dropDraft, loadSession, loadSettings, saveDraft, saveSession, saveSettings } from "./session";
@@ -28,7 +29,7 @@ const handlers: Record<string, (args: any) => unknown> = {
   startup: (): Startup => ({
     ...loadSession(DATA),
     open: argPaths(process.argv, process.cwd(), SKIP),
-    theme: "system",
+    theme: loadSettings(DATA).theme,
     lang,
     version: app.getVersion(),
     updated: null,
@@ -39,6 +40,11 @@ const handlers: Record<string, (args: any) => unknown> = {
   drop_draft: ({ id }: { id: string }) => dropDraft(DATA, id),
   flushed: () => win?.destroy(),
   watch: ({ paths }: { paths: string[] }) => watchFiles(paths),
+  set_theme: ({ theme }: { theme: Theme }) => {
+    nativeTheme.themeSource = theme;
+    saveSettings(DATA, { theme });
+  },
+  set_default_app: () => setDefaultApp(process.execPath),
   read_file: ({ path }: { path: string }) => readDoc(path),
   write_file: ({ path, text, meta }: { path: string; text: string; meta: DocMeta }) => writeDoc(path, text, meta),
   save_as: async ({ text, meta, name }: { text: string; meta: DocMeta; name: string }) => {
@@ -72,7 +78,8 @@ const visible = (b: Rectangle) =>
   screen.getAllDisplays().some(({ workArea: a }) => b.x < a.x + a.width - 100 && b.x + b.width > a.x + 100 && b.y >= a.y - 10 && b.y < a.y + a.height - 50);
 
 function createWindow() {
-  const { bounds, maximized } = loadSettings(DATA);
+  const { bounds, maximized, theme } = loadSettings(DATA);
+  nativeTheme.themeSource = theme;
   win = new BrowserWindow({
     width: 1100,
     height: 760,
