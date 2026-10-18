@@ -36,4 +36,8 @@ const pl: Record<string, string> = {
   "Saving failed": "Nie udało się zapisać",
   "Ln {line}, Col {col}": "Wiersz {line}, kol. {col}",
   "{n} words": "Słowa: {n}",
+  "The file changed on disk.": "Plik zmienił się na dysku.",
+  "Reload": "Przeładuj",
+  "Keep mine": "Zachowaj moje",
+  "The file was deleted or moved. Save it to keep it.": "Plik został usunięty lub przeniesiony. Zapisz go, żeby go zachować.",
 };

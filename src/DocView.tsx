@@ -24,6 +24,7 @@ type Props = {
   onOpen(path: string, hash: string): void;
   takeHash(): string | null;
   onSave(): void;
+  onReload(): void;
 };
 
 /** Big documents re-render the preview after a pause in typing instead of on every key. */
@@ -37,7 +38,7 @@ function usePreview(text: string) {
   return text.length < 100_000 ? text : preview;
 }
 
-export default function DocView({ tab, dispatch, onOpen, takeHash, onSave }: Props) {
+export default function DocView({ tab, dispatch, onOpen, takeHash, onSave, onReload }: Props) {
   const [cursor, setCursor] = useState([1, 1]);
   const preview = useRef<HTMLDivElement>(null);
   const text = usePreview(tab.text);
@@ -75,6 +76,16 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onSave }: Pro
           </Button>
         )}
       </div>
+      {tab.changed && (
+        <div className="flex shrink-0 items-center gap-2 border-b border-line bg-warning-soft py-1.5 pr-2.5 pl-4">
+          <span className="flex-1">{t("The file changed on disk.")}</span>
+          <Button onClick={onReload}>{t("Reload")}</Button>
+          <Button onClick={() => dispatch({ type: "keepMine", id: tab.id })}>{t("Keep mine")}</Button>
+        </div>
+      )}
+      {tab.missing && (
+        <div className="shrink-0 border-b border-line bg-surface-2 px-4 py-2.5 text-muted">{t("The file was deleted or moved. Save it to keep it.")}</div>
+      )}
       {tab.editing ? (
         <>
           <div className="flex min-h-0 flex-1">

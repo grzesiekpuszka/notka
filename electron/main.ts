@@ -6,6 +6,7 @@ import { readDoc, writeDoc } from "./files";
 import { serveImages } from "./images";
 import { dropDraft, loadSession, loadSettings, saveDraft, saveSession, saveSettings } from "./session";
 import { DATA, emit, errorText } from "./util";
+import { watchFiles } from "./watch";
 import { setLang, t, type Lang } from "../src/i18n";
 
 // a second launch only hands its arguments to the running instance (see "second-instance") and exits at once
@@ -37,6 +38,7 @@ const handlers: Record<string, (args: any) => unknown> = {
   save_draft: ({ id, text }: { id: string; text: string }) => saveDraft(DATA, id, text),
   drop_draft: ({ id }: { id: string }) => dropDraft(DATA, id),
   flushed: () => win?.destroy(),
+  watch: ({ paths }: { paths: string[] }) => watchFiles(paths),
   read_file: ({ path }: { path: string }) => readDoc(path),
   write_file: ({ path, text, meta }: { path: string; text: string; meta: DocMeta }) => writeDoc(path, text, meta),
   save_as: async ({ text, meta, name }: { text: string; meta: DocMeta; name: string }) => {

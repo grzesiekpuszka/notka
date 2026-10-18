@@ -39,8 +39,15 @@ export default function App() {
       await openPaths(s.open);
       setReady(true);
     });
-    return on("open", openPaths);
+    const offs = [on("open", openPaths), on("file_changed", (doc: FileDoc) => dispatch({ type: "disk", doc })), on("file_missing", (path: string) => dispatch({ type: "missing", path }))];
+    return () => offs.forEach((off) => off());
   }, [openPaths]);
+
+  // "|" can't appear in a Windows path
+  const watched = state.tabs.flatMap((t) => (t.path && !t.missing ? [t.path] : [])).join("|");
+  useEffect(() => {
+    if (ready) invoke("watch", { paths: watched ? watched.split("|") : [] }).catch(() => {});
+  }, [watched, ready]);
 
   // the main process sets nativeTheme, which drives prefers-color-scheme
   useEffect(() => {
@@ -105,6 +112,10 @@ export default function App() {
             key={tab.id}
             tab={tab}
             dispatch={dispatch}
+            onReload={async () => {
+              const doc = await invoke<FileDoc | null>("read_file", { path: tab.path });
+              dispatch(doc ? { type: "reload", doc } : { type: "missing", path: tab.path! });
+            }}
             onSave={() => save(tab).catch((e) => confirm(t("Saving failed"), String(e.message ?? e), [t("OK")]))}
             onOpen={(path, h) => {
               hash.current = h || null;
