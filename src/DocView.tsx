@@ -5,7 +5,7 @@ import type { EditorHandle } from "./format";
 import { t } from "./i18n";
 import LinkPopover from "./LinkPopover";
 import { dirname, relativePath } from "./paths";
-import Reader from "./Reader";
+import Reader, { followLink } from "./Reader";
 import type { Action, Tab } from "./tabs";
 import Toolbar from "./Toolbar";
 import { Button } from "./ui";
@@ -139,14 +139,16 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onReload, fin
       ) : (
         <div className="relative min-h-0 flex-1">
           {find}
-          <Suspense fallback={reader}>
+          <Suspense fallback={<Reader text={text} path={tab.path} scroll={tab.scroll} onScroll={() => {}} onOpen={onOpen} takeHash={() => null} />}>
             <Wysiwyg
               key={tab.id}
               tab={tab}
               handleRef={handle}
               boxRef={preview}
               onChange={(text) => dispatch({ type: "edit", id: tab.id, text })}
-              onOpenLink={() => {}}
+              onOpenLink={(href) => followLink(href, tab.path && dirname(tab.path), preview.current!, onOpen)}
+              onLink={link}
+              takeHash={takeHash}
               onScroll={(scroll) => dispatch({ type: "scroll", id: tab.id, scroll })}
               onUpdate={() => setTick((n) => n + 1)}
               onUnsafe={(notice) => dispatch({ type: "setMode", id: tab.id, mode: "markdown", notice })}

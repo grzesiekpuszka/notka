@@ -80,3 +80,72 @@ test("input rule makes a heading", async () => {
   expect(onChange.mock.lastCall![0]).toMatch(/^## x/);
   editor.destroy();
 });
+
+const cases: [import("../src/format").Format, string | undefined, string][] = [
+  ["h2", undefined, "## "],
+  ["italic", undefined, "*word*"],
+  ["strike", undefined, "~~word~~"],
+  ["code", undefined, "`word`"],
+  ["bullet", undefined, "- "],
+  ["ordered", undefined, "1. "],
+  ["task", undefined, "- [ ] "],
+  ["quote", undefined, "> "],
+  ["codeblock", undefined, "```"],
+  ["hr", undefined, "---"],
+  ["table", undefined, "| "],
+  ["image", "img/a.png", "![](img/a.png)"],
+  ["link", "https://x", "[word](https://x)"],
+];
+
+test.each(cases)("toolbar %s formats in wysiwyg", async (f, arg, expected) => {
+  const { editor, onChange } = await make("some word here\n");
+  select(editor.view, "word");
+  editor.handle.run(f, arg);
+  expect(onChange.mock.lastCall![0]).toContain(expected);
+  editor.destroy();
+});
+
+test("active reports marks and block", async () => {
+  const { editor } = await make("## T **bold**\n");
+  select(editor.view, "old");
+  const view = editor.view;
+  const { from } = view.state.selection;
+  view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, from + 1)));
+  const on = editor.handle.active();
+  expect(on.has("h2")).toBe(true);
+  expect(on.has("bold")).toBe(true);
+  editor.destroy();
+});
+
+test("tab in the last table cell adds a row", async () => {
+  const { editor, onChange } = await make("| a | b |\n| - | - |\n| 1 | 2 |\n");
+  select(editor.view, "2");
+  const view = editor.view;
+  editor.dom.dispatchEvent(new KeyboardEvent("keydown", { key: "x" }));
+  view.someProp("handleKeyDown", (f) => f(view, new KeyboardEvent("keydown", { key: "Tab" })));
+  const rows = onChange.mock.lastCall![0].trim().split("\n");
+  expect(rows).toHaveLength(4);
+  editor.destroy();
+});
+
+test("ctrl+click opens links, click doesn't", async () => {
+  const onOpenLink = vi.fn();
+  const root = document.createElement("div");
+  document.body.append(root);
+  const editor = await createEditor({ root, markdown: "see [docs](other.md#x)\n", dir: null, onChange: vi.fn(), onOpenLink });
+  const a = root.querySelector("a")!;
+  a.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+  expect(onOpenLink).not.toHaveBeenCalled();
+  a.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true }));
+  expect(onOpenLink).toHaveBeenCalledWith("other.md#x");
+  editor.destroy();
+});
+
+test("relative images display through mdimg", async () => {
+  const root = document.createElement("div");
+  document.body.append(root);
+  const editor = await createEditor({ root, markdown: "![a](img/p.png)\n", dir: "D:\\d", onChange: vi.fn(), onOpenLink: vi.fn() });
+  expect(root.querySelector("img[alt=a]")!.getAttribute("src")).toMatch(/^mdimg:\/\/f\//);
+  expect(editor.getMarkdown()).toContain("img/p.png");
+  editor.destroy();
+});

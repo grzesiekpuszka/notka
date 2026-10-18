@@ -17,6 +17,16 @@ type Props = {
 
 const scrollTo = (root: HTMLElement, hash: string) => root.querySelector(`[id="${CSS.escape(decodeURIComponent(hash))}"]`)?.scrollIntoView();
 
+/** What a click on a link in a document does: anchors scroll, web links open the browser, .md files open a tab. */
+export function followLink(href: string, dir: string | null, root: HTMLElement, onOpen: (path: string, hash: string) => void) {
+  if (href.startsWith("#")) scrollTo(root, href.slice(1));
+  else if (/^https?:/i.test(href)) invoke("open_external", { url: href }).catch(() => {});
+  else if (dir && !/^[a-z][a-z0-9+.-]*:/i.test(href)) {
+    const link = resolveLink(dir, href);
+    if (/\.(md|markdown)$/i.test(link.path)) onOpen(link.path, link.hash);
+  }
+}
+
 export default function Reader({ text, path, scroll, onScroll, onOpen, takeHash, boxRef }: Props) {
   const own = useRef<HTMLDivElement>(null);
   const box = boxRef ?? own;
@@ -42,12 +52,7 @@ export default function Reader({ text, path, scroll, onScroll, onOpen, takeHash,
     const href = a?.getAttribute("href");
     if (!href) return;
     e.preventDefault();
-    if (href.startsWith("#")) scrollTo(doc.current!, href.slice(1));
-    else if (/^https?:/i.test(href)) invoke("open_external", { url: href }).catch(() => {});
-    else if (dir && !/^[a-z][a-z0-9+.-]*:/i.test(href)) {
-      const link = resolveLink(dir, href);
-      if (/\.(md|markdown)$/i.test(link.path)) onOpen(link.path, link.hash);
-    }
+    followLink(href, dir, doc.current!, onOpen);
   };
 
   const timer = useRef<number>(undefined);

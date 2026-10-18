@@ -25,6 +25,9 @@ type Props = {
   boxRef: RefObject<HTMLDivElement | null>;
   onChange(md: string): void;
   onOpenLink(href: string): void;
+  onLink(): void;
+  /** an anchor to jump to once the document is shown (a link from another document) */
+  takeHash(): string | null;
   onScroll(top: number): void;
   /** the selection or the document changed (toolbar states) */
   onUpdate(): void;
@@ -32,14 +35,14 @@ type Props = {
   onUnsafe(notice: string): void;
 };
 
-export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, onScroll, onUpdate, onUnsafe }: Props) {
+export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, onLink, takeHash, onScroll, onUpdate, onUnsafe }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<Instance | null>(null);
   const [ready, setReady] = useState(false);
   // the markdown this editor produced itself; any other text (reload from disk) replaces the document
   const own = useRef(tab.text);
-  const props = useRef({ onChange, onOpenLink, onUpdate });
-  props.current = { onChange, onOpenLink, onUpdate };
+  const props = useRef({ onChange, onOpenLink, onLink, onUpdate });
+  props.current = { onChange, onOpenLink, onLink, onUpdate };
 
   useEffect(() => {
     let alive = true;
@@ -57,15 +60,20 @@ export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, 
           props.current.onUpdate();
         },
         onOpenLink: (href) => props.current.onOpenLink(href),
+        onLink: () => props.current.onLink(),
       }).then((e) => {
         if (!alive) return e.destroy();
         editor.current = e;
         handleRef.current = e.handle;
         setReady(true);
+        const hash = takeHash();
         requestAnimationFrame(() => {
-          if (boxRef.current) boxRef.current.scrollTop = tab.scroll;
+          // after the render that shows the editor (a hidden element can't take focus), before restoring the scroll
+          e.view.focus();
+          const target = hash && e.dom.querySelector(`[id="${CSS.escape(decodeURIComponent(hash))}"]`);
+          if (target) target.scrollIntoView();
+          else if (boxRef.current) boxRef.current.scrollTop = tab.scroll;
         });
-        e.view.focus();
       });
     });
     const selection = () => editor.current?.view.hasFocus() && props.current.onUpdate();
