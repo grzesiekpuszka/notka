@@ -5,9 +5,9 @@ import { promisify } from "node:util";
 import { t } from "../src/i18n";
 
 const run = promisify(execFile);
-const PROGID = "SimpleMarkdownReader.md";
-const NAME = "Simple Markdown Reader";
-const CAPS = "Software\\SimpleMarkdownReader\\Capabilities";
+const PROGID = "Notka.md";
+const NAME = "Notka";
+const CAPS = "Software\\Notka\\Capabilities";
 
 /** HKCU keys as [key, value name (null = default), data]. */
 export function entries(exe: string, icon: string): [string, string | null, string][] {
@@ -21,7 +21,7 @@ export function entries(exe: string, icon: string): [string, string | null, stri
       [`${CAPS}\\FileAssociations`, ext, PROGID],
     ]),
     [CAPS, "ApplicationName", NAME],
-    [CAPS, "ApplicationDescription", t("Simple markdown reader and editor")],
+    [CAPS, "ApplicationDescription", t("A simple markdown editor")],
     ["Software\\RegisteredApplications", NAME, CAPS],
   ];
 }
@@ -32,6 +32,15 @@ export function entries(exe: string, icon: string): [string, string | null, stri
  */
 export async function setDefaultApp(exe: string) {
   if (!app.isPackaged) throw new Error(t("Only available in the packaged app"));
+  // the app was called Simple Markdown Reader before: drop its keys so Windows doesn't offer it twice
+  for (const args of [
+    ["HKCU\\Software\\Classes\\SimpleMarkdownReader.md"],
+    ["HKCU\\Software\\SimpleMarkdownReader"],
+    ["HKCU\\Software\\RegisteredApplications", "/v", "Simple Markdown Reader"],
+    ["HKCU\\Software\\Classes\\.md\\OpenWithProgids", "/v", "SimpleMarkdownReader.md"],
+    ["HKCU\\Software\\Classes\\.markdown\\OpenWithProgids", "/v", "SimpleMarkdownReader.md"],
+  ])
+    await run("reg.exe", ["delete", ...args, "/f"], { windowsHide: true }).catch(() => {});
   for (const [key, name, value] of entries(exe, path.join(process.resourcesPath, "md-file.ico"))) {
     await run("reg.exe", ["add", `HKCU\\${key}`, ...(name === null ? ["/ve"] : ["/v", name]), "/t", "REG_SZ", "/d", value, "/f"], { windowsHide: true });
   }

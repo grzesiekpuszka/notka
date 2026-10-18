@@ -70,7 +70,7 @@ const pl: Record<string, string> = {
   "Set as default for .md": "Ustaw jako domyślną dla .md",
   "Only available in the packaged app": "Dostępne tylko w zbudowanej aplikacji",
   "Markdown document": "Dokument Markdown",
-  "Simple markdown reader and editor": "Prosty czytnik i edytor markdown",
+  "A simple markdown editor": "Prosty edytor markdown",
   "Check for updates": "Sprawdź aktualizacje",
   "You have the latest version.": "Masz najnowszą wersję.",
   "Downloading… {n}%": "Pobieranie… {n}%",

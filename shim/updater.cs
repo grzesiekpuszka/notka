@@ -2,7 +2,8 @@
 // backup, the new files are copied in and the new exe starts. On any failure the new entries are removed, the backup is
 // put back and the old version starts; what went wrong goes to update.log, and a "rollback-failed" file next to it
 // tells the app that the backup still holds files it couldn't restore. A window-less exe (/target:winexe).
-// Usage: updater.exe <root> <new> <backup> <pid> [app arguments...]
+// Usage: updater.exe <root> <new> <backup> <pid> <running exe name> [app arguments...]
+// The exe to start is the one in the new package, so a renamed exe works; the old one is then removed.
 // Built with the C# 5 compiler that ships with Windows: scripts/build-shim.mjs
 using System;
 using System.Collections.Generic;
@@ -19,9 +20,11 @@ static class Updater
     {
         string root = args[0], fresh = args[1], backup = args[2];
         int pid = int.Parse(args[3]);
+        string oldExe = args[4];
+        string newExe = Path.GetFileName(Directory.GetFiles(fresh, "*.exe")[0]);
         string dir = Path.GetDirectoryName(backup);
         string appArgs = "";
-        for (int i = 4; i < args.Length; i++) appArgs += " \"" + args[i] + "\"";
+        for (int i = 5; i < args.Length; i++) appArgs += " \"" + args[i] + "\"";
 
         try
         {
@@ -54,7 +57,12 @@ static class Updater
                 if (Directory.Exists(from)) CopyTree(from, to);
                 else Retry(() => File.Copy(from, to, true));
             }
-            Start(root, "--updated" + appArgs);
+            if (!string.Equals(oldExe, newExe, StringComparison.OrdinalIgnoreCase))
+            {
+                try { File.Delete(Path.Combine(root, oldExe)); }
+                catch (Exception) { } // only a leftover
+            }
+            Start(root, newExe, "--updated" + appArgs);
             return 0;
         }
         catch (Exception e)
@@ -93,7 +101,7 @@ static class Updater
             catch (Exception) { }
             try
             {
-                Start(root, "--update-failed" + appArgs);
+                Start(root, oldExe, "--update-failed" + appArgs);
             }
             catch (Exception) { }
             return 1;
@@ -152,9 +160,9 @@ static class Updater
         foreach (string dir in Directory.GetDirectories(from)) CopyTree(dir, Path.Combine(to, Path.GetFileName(dir)));
     }
 
-    static void Start(string root, string args)
+    static void Start(string root, string exe, string args)
     {
-        var info = new ProcessStartInfo(Path.Combine(root, "markdown-reader.exe"), args.TrimStart()) { UseShellExecute = false, WorkingDirectory = root };
+        var info = new ProcessStartInfo(Path.Combine(root, exe), args.TrimStart()) { UseShellExecute = false, WorkingDirectory = root };
         Process.Start(info);
     }
 }

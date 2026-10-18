@@ -6,7 +6,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
-const REPO = "grzesiekpuszka/simple-markdown-reader";
+const REPO = "grzesiekpuszka/notka";
 const token = process.env.GITHUB_TOKEN;
 if (!token) throw new Error("Set GITHUB_TOKEN (a token with Contents: read and write for the repository).");
 
@@ -19,7 +19,7 @@ if (git("tag", "-l", tag) && git("rev-parse", `${tag}^{commit}`) !== git("rev-pa
   throw new Error(`${tag} already exists on another commit — bump the version in package.json.`);
 }
 
-const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "User-Agent": "smr-release" };
+const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "User-Agent": "notka-release" };
 const api = async (url, init = {}) => {
   const res = await fetch(url.startsWith("https://") ? url : `https://api.github.com/repos/${REPO}${url}`, { ...init, headers: { ...headers, ...init.headers } });
   if (!res.ok) throw new Error(`${init.method ?? "GET"} ${url}: HTTP ${res.status} ${await res.text()}`);
@@ -39,7 +39,7 @@ try {
 const dir = path.join("release", "win-unpacked");
 // data of a local test run is not part of the package
 const entries = fs.readdirSync(dir).filter((name) => name !== "data");
-const name = `simple-markdown-reader-${version}-win-x64.zip`;
+const name = `notka-${version}-win-x64.zip`;
 const zip = path.join("release", name);
 fs.rmSync(zip, { force: true });
 const tar = path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe");
@@ -61,7 +61,7 @@ if (!notes) {
 if (!git("tag", "-l", tag)) git("tag", tag);
 execFileSync("git", ["push", "origin", "HEAD", tag], { stdio: "inherit" });
 
-const body = JSON.stringify({ tag_name: tag, name: `Simple Markdown Reader ${version}`, body: notes, draft: true });
+const body = JSON.stringify({ tag_name: tag, name: `Notka ${version}`, body: notes, draft: true });
 release = release ? await api(`/releases/${release.id}`, { method: "PATCH", body }) : await api("/releases", { method: "POST", body });
 const upload = release.upload_url.replace(/\{.*$/, "");
 for (const [file, type] of [[zip, "application/zip"], [`${zip}.sha256`, "text/plain"]]) {

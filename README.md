@@ -1,4 +1,4 @@
-# Simple Markdown Reader
+# Notka
 
 A small, fast markdown editor for Windows 11 — think Notepad, but for `.md` files. Documents open formatted and you edit
 them like in any word processor; markdown is just how they are saved.
@@ -15,9 +15,8 @@ keep exactly, and files over 200 kB, open in Markdown mode.
 
 ## Install
 
-Download `simple-markdown-reader-<version>-win-x64.zip` from the
-[latest release](https://github.com/grzesiekpuszka/simple-markdown-reader/releases/latest), unzip it anywhere and run
-`markdown-reader.exe`. To open `.md` files with a double-click, choose **… → Set as default for .md** and confirm
+Download `notka-<version>-win-x64.zip` from the
+[latest release](https://github.com/grzesiekpuszka/notka/releases/latest), unzip it anywhere and run `notka.exe`. To open `.md` files with a double-click, choose **… → Set as default for .md** and confirm
 the choice in Windows Settings.
 
 Everything the app stores (session, unsaved drafts, settings) lives in the `data` folder next to the exe.

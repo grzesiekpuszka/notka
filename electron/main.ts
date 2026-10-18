@@ -103,7 +103,7 @@ function createWindow() {
     ...(bounds && visible(bounds) ? bounds : {}),
     minWidth: 640,
     minHeight: 420,
-    title: "Simple Markdown Reader",
+    title: "Notka",
     show: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#1b1b1d" : "#f7f7f8",
     titleBarStyle: "hidden",

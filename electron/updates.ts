@@ -11,12 +11,11 @@ import { t } from "../src/i18n";
 import { emit, exists, p, ROOT } from "./util";
 import { newerVersion } from "./version";
 
-const REPO = "grzesiekpuszka/simple-markdown-reader";
-const EXE = "markdown-reader.exe";
+const REPO = "grzesiekpuszka/notka";
 const DIR = p("tmp", "update");
 const STATE = p("updates.json");
 const DAY = 24 * 60 * 60 * 1000;
-const headers = { "User-Agent": "simple-markdown-reader", Accept: "application/vnd.github+json" };
+const headers = { "User-Agent": "notka", Accept: "application/vnd.github+json" };
 
 type Saved = { checked: string | null; available: UpdateState["available"]; zip?: string; sha?: string; notified?: string };
 
@@ -36,7 +35,9 @@ function save(patch: Partial<Saved>) {
 }
 
 const readText = (file: string) => (exists(file) ? fs.readFileSync(file, "utf8").trim() : "");
-const downloaded = () => !!saved.available && exists(path.join(DIR, "app", EXE)) && readText(path.join(DIR, "app.version")) === saved.available.version;
+// a package has the app's exe at its root; its name may change between versions
+const hasExe = (dir: string) => exists(dir) && fs.readdirSync(dir).some((f) => f.toLowerCase().endsWith(".exe"));
+const downloaded = () => !!saved.available && hasExe(path.join(DIR, "app")) && readText(path.join(DIR, "app.version")) === saved.available.version;
 
 export function updateState(): UpdateState {
   // an update installed meanwhile (or a manual copy) makes a stored release stale
@@ -147,7 +148,7 @@ async function fetchUpdate() {
   fs.mkdirSync(out, { recursive: true });
   const tar = path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe");
   await promisify(execFile)(tar, ["-xf", zip, "-C", out], { windowsHide: true });
-  if (!exists(path.join(out, EXE))) throw new Error(t("The update package is invalid"));
+  if (!hasExe(out)) throw new Error(t("The update package is invalid"));
   fs.rmSync(zip, { force: true });
   fs.writeFileSync(path.join(DIR, "app.version"), release.version);
 }
@@ -162,7 +163,7 @@ export function applyUpdate() {
   if (!downloaded()) throw new Error(t("Download the update first"));
   const updater = path.join(DIR, "updater.exe");
   fs.copyFileSync(app.isPackaged ? path.join(process.resourcesPath, "updater.exe") : path.join(ROOT, "resources", "updater.exe"), updater);
-  spawn(updater, [ROOT, path.join(DIR, "app"), path.join(DIR, "backup"), String(process.pid)], { detached: true, stdio: "ignore" }).unref();
+  spawn(updater, [ROOT, path.join(DIR, "app"), path.join(DIR, "backup"), String(process.pid), path.basename(process.execPath)], { detached: true, stdio: "ignore" }).unref();
   app.quit();
 }
 

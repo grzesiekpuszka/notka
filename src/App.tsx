@@ -82,7 +82,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    document.title = tab ? `${dirty(tab) ? "● " : ""}${tabName(tab)} – Simple Markdown Reader` : "Simple Markdown Reader";
+    document.title = tab ? `${dirty(tab) ? "● " : ""}${tabName(tab)} – Notka` : "Notka";
   }, [tab]);
 
   const openDialog = async () => openPaths(await invoke<string[]>("open_dialog"));
@@ -197,7 +197,7 @@ export default function App() {
         { label: t("Set as default for .md"), icon: FileType, onClick: () => invoke("set_default_app").catch(fail) },
         { label: t("Check for updates"), icon: RefreshCw, onClick: () => checkUpdates().catch(fail) },
       ]}
-      footer={`Simple Markdown Reader ${version}`}
+      footer={`Notka ${version}`}
     />
   );
 

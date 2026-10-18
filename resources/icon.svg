@@ -1,13 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2f8fe0"/>
-      <stop offset="1" stop-color="#0058a8"/>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eceef1"/>
     </linearGradient>
   </defs>
-  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#bg)"/>
-  <path d="M300 200h300l160 160v440a40 40 0 0 1-40 40H300a40 40 0 0 1-40-40V240a40 40 0 0 1 40-40z" fill="#fff"/>
-  <path d="M600 200v120a40 40 0 0 0 40 40h120z" fill="#cfe4f7"/>
-  <path d="M340 720V480l70 90 70-90v240" fill="none" stroke="#0067c0" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M610 470v240m-70-70 70 70 70-70" fill="none" stroke="#0067c0" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M240 96h400l184 184v588a60 60 0 0 1-60 60H240a60 60 0 0 1-60-60V156a60 60 0 0 1 60-60z" fill="url(#page)" stroke="#d9dbe0" stroke-width="8"/>
+  <path d="M640 96v124a60 60 0 0 0 60 60h124z" fill="#0067c0"/>
+  <path d="M330 380h82l200 290V380h78v420h-82L408 510v290h-78z" fill="#1c1c1f"/>
 </svg>
