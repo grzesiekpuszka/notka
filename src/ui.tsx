@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, Ref } from "react";
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 
@@ -13,6 +13,7 @@ const variants: Record<Variant, string> = {
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   icon?: LucideIcon;
+  ref?: Ref<HTMLButtonElement>;
 }
 
 export function Button({ variant = "default", icon: Icon, className, children, ...rest }: ButtonProps) {
