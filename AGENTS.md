@@ -1,7 +1,7 @@
 # Notka — agent notes
 
 Notka (formerly Simple Markdown Reader): portable Windows 11 markdown editor (Electron). Repo `grzesiekpuszka/notka`, exe
-`notka.exe`; the project folder keeps its old name. Specs: `docs/superpowers/specs/2026-10-18-simple-markdown-reader-design.md`
+`notka.exe`, project folder `D:\Projekty\Aplikacje\notka`. Specs: `docs/superpowers/specs/2026-10-18-simple-markdown-reader-design.md`
 and `docs/superpowers/specs/2026-10-18-wysiwyg-editor-design.md` (WYSIWYG editor, tabs in the title bar; amends the first).
 Sister project with the same stack and conventions: `D:\Projekty\Aplikacje\lokaldev`.
 
