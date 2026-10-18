@@ -180,3 +180,5 @@ code {
 @keyframes ProseMirror-cursor-blink { to { visibility: hidden; } }
 .ProseMirror-focused .ProseMirror-gapcursor { display: block; }
 .wysiwyg .md { caret-color: var(--c-accent); min-height: 100%; }
+.wysiwyg [data-type="html"] { font-family: var(--font-mono); font-size: 0.85em; color: var(--c-muted); white-space: pre-wrap; }
+.wysiwyg pre.frontmatter { color: var(--c-muted); border-left: 3px solid var(--c-border); background: var(--c-surface-2); user-select: text; }

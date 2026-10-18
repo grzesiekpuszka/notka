@@ -42,6 +42,8 @@ const pl: Record<string, string> = {
   "Link address": "Adres linku",
   "Insert": "Wstaw",
   "Images": "Obrazy",
+  "This file is large, so it opens as markdown.": "Ten plik jest duży, więc otwiera się jako markdown.",
+  "This file uses markdown the visual editor can't keep exactly, so it opens as markdown.": "Ten plik używa markdown, którego edytor wizualny nie zachowa dokładnie, więc otwiera się jako markdown.",
   "Install version {version} and restart": "Zainstaluj wersję {version} i uruchom ponownie",
   "Open…": "Otwórz…",
   "Save": "Zapisz",

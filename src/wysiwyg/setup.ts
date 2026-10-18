@@ -16,6 +16,7 @@ import { Plugin } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { $prose, callCommand, replaceAll } from "@milkdown/kit/utils";
 import type { EditorHandle, Format } from "../format";
+import { frontmatter } from "./frontmatter";
 
 export type WysiwygOptions = { root: HTMLElement; markdown: string; dir: string | null; onChange(md: string): void; onOpenLink(href: string): void };
 
@@ -58,6 +59,7 @@ export async function createEditor(o: WysiwygOptions): Promise<Wysiwyg> {
     })
     .use(commonmark)
     .use(gfm)
+    .use(frontmatter)
     .use(history)
     .use(clipboard)
     .use(watch)

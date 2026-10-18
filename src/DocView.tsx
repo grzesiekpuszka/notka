@@ -149,6 +149,7 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onReload, fin
               onOpenLink={() => {}}
               onScroll={(scroll) => dispatch({ type: "scroll", id: tab.id, scroll })}
               onUpdate={() => setTick((n) => n + 1)}
+              onUnsafe={(notice) => dispatch({ type: "setMode", id: tab.id, mode: "markdown", notice })}
             />
           </Suspense>
         </div>

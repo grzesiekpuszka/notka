@@ -4,7 +4,20 @@ import type { EditorHandle } from "../format";
 import { dirname } from "../paths";
 import Reader from "../Reader";
 import type { Tab } from "../tabs";
+import { t } from "../i18n";
+import { checkFidelity, MAX_WYSIWYG } from "./fidelity";
 import { createEditor, type Wysiwyg as Instance } from "./setup";
+
+// tab id → the text that passed the check, so switching tabs doesn't check again
+const trusted = new Map<string, string>();
+
+async function unsafe(tab: Tab) {
+  if (tab.text.length > MAX_WYSIWYG) return t("This file is large, so it opens as markdown.");
+  if (trusted.get(tab.id) === tab.text) return null;
+  if (!(await checkFidelity(tab.text))) return t("This file uses markdown the visual editor can't keep exactly, so it opens as markdown.");
+  trusted.set(tab.id, tab.text);
+  return null;
+}
 
 type Props = {
   tab: Tab;
@@ -15,9 +28,11 @@ type Props = {
   onScroll(top: number): void;
   /** the selection or the document changed (toolbar states) */
   onUpdate(): void;
+  /** the document can't go through the visual editor without losing something */
+  onUnsafe(notice: string): void;
 };
 
-export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, onScroll, onUpdate }: Props) {
+export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, onScroll, onUpdate, onUnsafe }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<Instance | null>(null);
   const [ready, setReady] = useState(false);
@@ -28,25 +43,30 @@ export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, 
 
   useEffect(() => {
     let alive = true;
-    createEditor({
-      root: host.current!,
-      markdown: tab.text,
-      dir: tab.path && dirname(tab.path),
-      onChange: (md) => {
-        own.current = md;
-        props.current.onChange(md);
-        props.current.onUpdate();
-      },
-      onOpenLink: (href) => props.current.onOpenLink(href),
-    }).then((e) => {
-      if (!alive) return e.destroy();
-      editor.current = e;
-      handleRef.current = e.handle;
-      setReady(true);
-      requestAnimationFrame(() => {
-        if (boxRef.current) boxRef.current.scrollTop = tab.scroll;
+    // nothing is editable before the check: an edit would already write the document back
+    unsafe(tab).then((notice) => {
+      if (!alive) return;
+      if (notice) return onUnsafe(notice);
+      return createEditor({
+        root: host.current!,
+        markdown: tab.text,
+        dir: tab.path && dirname(tab.path),
+        onChange: (md) => {
+          own.current = md;
+          props.current.onChange(md);
+          props.current.onUpdate();
+        },
+        onOpenLink: (href) => props.current.onOpenLink(href),
+      }).then((e) => {
+        if (!alive) return e.destroy();
+        editor.current = e;
+        handleRef.current = e.handle;
+        setReady(true);
+        requestAnimationFrame(() => {
+          if (boxRef.current) boxRef.current.scrollTop = tab.scroll;
+        });
+        e.view.focus();
       });
-      e.view.focus();
     });
     const selection = () => editor.current?.view.hasFocus() && props.current.onUpdate();
     document.addEventListener("selectionchange", selection);
