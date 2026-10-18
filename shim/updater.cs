@@ -154,7 +154,7 @@ static class Updater
 
     static void Start(string root, string args)
     {
-        var info = new ProcessStartInfo(Path.Combine(root, "simple-markdown-reader.exe"), args.TrimStart()) { UseShellExecute = false, WorkingDirectory = root };
+        var info = new ProcessStartInfo(Path.Combine(root, "markdown-reader.exe"), args.TrimStart()) { UseShellExecute = false, WorkingDirectory = root };
         Process.Start(info);
     }
 }

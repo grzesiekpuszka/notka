@@ -1,7 +1,7 @@
 {
   "name": "simple-markdown-reader",
   "private": true,
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "type": "module",
   "packageManager": "pnpm@12.11.2",
   "description": "Simple markdown reader and editor",
@@ -72,7 +72,7 @@
     ],
     "win": {
       "target": "dir",
-      "executableName": "simple-markdown-reader",
+      "executableName": "markdown-reader",
       "icon": "resources/icon.ico"
     },
     "asar": true,

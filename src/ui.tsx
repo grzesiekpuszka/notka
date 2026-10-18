@@ -22,7 +22,8 @@ export function Button({ variant = "default", icon: Icon, className, children, .
       type="button"
       {...rest}
       className={cx(
-        "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 font-medium whitespace-nowrap transition-colors disabled:opacity-50",
+        "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border font-medium whitespace-nowrap transition-colors disabled:opacity-50",
+        children ? "px-3" : "w-8",
         variants[variant],
         className,
       )}

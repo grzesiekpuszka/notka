@@ -69,17 +69,11 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onSave, onRel
         <span className="flex-1" />
         {tab.editing ? (
           <>
-            <Button icon={Save} onClick={onSave}>
-              {t("Save")} <span className="text-xs font-normal text-muted">Ctrl+S</span>
-            </Button>
-            <Button variant="primary" icon={Check} onClick={() => dispatch({ type: "toggleEdit", id: tab.id })}>
-              {t("Done")}
-            </Button>
+            <Button icon={Save} title={t("Save (Ctrl+S)")} aria-label={t("Save (Ctrl+S)")} onClick={onSave} />
+            <Button variant="primary" icon={Check} title={t("Done (Ctrl+E)")} aria-label={t("Done (Ctrl+E)")} onClick={() => dispatch({ type: "toggleEdit", id: tab.id })} />
           </>
         ) : (
-          <Button variant="primary" icon={Pencil} onClick={() => dispatch({ type: "toggleEdit", id: tab.id })}>
-            {t("Edit")}
-          </Button>
+          <Button variant="primary" icon={Pencil} title={t("Edit (Ctrl+E)")} aria-label={t("Edit (Ctrl+E)")} onClick={() => dispatch({ type: "toggleEdit", id: tab.id })} />
         )}
       </div>
       {tab.changed && (

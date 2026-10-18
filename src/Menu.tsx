@@ -5,7 +5,7 @@ import { cx, IconButton } from "./ui";
 export type Item = { label: string; icon?: LucideIcon; checked?: boolean; onClick(): void } | "-" | { heading: string };
 
 /** The "…" menu at the bottom of the sidebar; it opens upwards. */
-export default function Menu({ items, footer, badge }: { items: Item[]; footer?: ReactNode; badge?: boolean }) {
+export default function Menu({ items, footer }: { items: Item[]; footer?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
@@ -24,7 +24,6 @@ export default function Menu({ items, footer, badge }: { items: Item[]; footer?:
   return (
     <div ref={box} className="relative">
       <IconButton icon={Ellipsis} label="Menu" onClick={() => setOpen(!open)} />
-      {badge && <span className="pointer-events-none absolute top-1 right-1 size-[7px] rounded-full bg-accent" />}
       {open && (
         <div className="absolute bottom-full left-0 z-20 mb-1 w-64 rounded-xl border border-line bg-surface p-1 shadow-xl">
           {items.map((item, i) =>

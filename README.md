@@ -13,7 +13,7 @@ the window into a plain-text editor and a live preview.
 
 Download `simple-markdown-reader-<version>-win-x64.zip` from the
 [latest release](https://github.com/grzesiekpuszka/simple-markdown-reader/releases/latest), unzip it anywhere and run
-`simple-markdown-reader.exe`. To open `.md` files with a double-click, choose **… → Set as default for .md** and confirm
+`markdown-reader.exe`. To open `.md` files with a double-click, choose **… → Set as default for .md** and confirm
 the choice in Windows Settings.
 
 Everything the app stores (session, unsaved drafts, settings) lives in the `data` folder next to the exe.

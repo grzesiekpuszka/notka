@@ -189,14 +189,23 @@ export default function App() {
         onNew={newDoc}
         onCollapse={() => dispatch({ type: "collapse" })}
         notice={
-          update?.available && (
+          update?.available &&
+          (state.collapsed ? (
+            <IconButton
+              icon={Download}
+              label={installing === null ? t("Install version {version} and restart", { version: update.available.version }) : t("Downloading… {n}%", { n: installing })}
+              disabled={installing !== null}
+              onClick={install}
+              className="mb-1 bg-accent-soft text-accent hover:bg-accent-soft hover:text-accent-hover dark:hover:bg-accent-soft"
+            />
+          ) : (
             <div className="mb-1.5 rounded-lg bg-accent-soft p-2.5 text-[13px]">
               <div className="mb-2">{t("Version {version} is available.", { version: update.available.version })}</div>
               <Button variant="primary" icon={Download} disabled={installing !== null} onClick={install} className="h-7 w-full">
                 {installing === null ? t("Install and restart") : t("Downloading… {n}%", { n: installing })}
               </Button>
             </div>
-          )
+          ))
         }
         footer={
           <>
@@ -216,7 +225,6 @@ export default function App() {
                 { label: t("Set as default for .md"), icon: FileType, onClick: () => invoke("set_default_app").catch(fail) },
                 { label: t("Check for updates"), icon: RefreshCw, onClick: () => checkUpdates().catch(fail) },
               ]}
-              badge={!!update?.available && state.collapsed}
               footer={`Simple Markdown Reader ${version}`}
             />
           </>

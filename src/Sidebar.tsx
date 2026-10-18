@@ -69,7 +69,7 @@ export default function Sidebar({ state, onActivate, onClose, onNew, onCollapse,
           );
         })}
       </nav>
-      {!mini && notice}
+      {notice}
       <div className={cx("flex items-center gap-0.5", mini && "flex-col")}>{footer}</div>
     </aside>
   );

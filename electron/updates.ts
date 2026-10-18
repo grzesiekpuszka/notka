@@ -12,7 +12,7 @@ import { emit, exists, p, ROOT } from "./util";
 import { newerVersion } from "./version";
 
 const REPO = "grzesiekpuszka/simple-markdown-reader";
-const EXE = "simple-markdown-reader.exe";
+const EXE = "markdown-reader.exe";
 const DIR = p("tmp", "update");
 const STATE = p("updates.json");
 const DAY = 24 * 60 * 60 * 1000;
