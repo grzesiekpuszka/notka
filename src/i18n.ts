@@ -16,4 +16,5 @@ export function t(text: string, vars?: Record<string, string | number>): string 
 const pl: Record<string, string> = {
   "Only http and https links can be opened": "Można otwierać tylko linki http i https",
   "Unknown command: {cmd}": "Nieznane polecenie: {cmd}",
+  "All files": "Wszystkie pliki",
 };

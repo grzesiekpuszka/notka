@@ -1,5 +1,7 @@
-import { app, BrowserWindow, ipcMain, nativeTheme, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
 import path from "node:path";
+import type { DocMeta } from "../src/api";
+import { readDoc, writeDoc } from "./files";
 import { errorText } from "./util";
 import { t } from "../src/i18n";
 
@@ -16,6 +18,21 @@ function openLink(url: string) {
 
 const handlers: Record<string, (args: any) => unknown> = {
   open_external: ({ url }: { url: string }) => openLink(url),
+  read_file: ({ path }: { path: string }) => readDoc(path),
+  write_file: ({ path, text, meta }: { path: string; text: string; meta: DocMeta }) => writeDoc(path, text, meta),
+  save_as: async ({ text, meta, name }: { text: string; meta: DocMeta; name: string }) => {
+    const r = await dialog.showSaveDialog(win!, { defaultPath: name, filters: [{ name: "Markdown", extensions: ["md", "markdown"] }] });
+    if (r.canceled || !r.filePath) return null;
+    await writeDoc(r.filePath, text, meta);
+    return r.filePath;
+  },
+  open_dialog: async () => {
+    const r = await dialog.showOpenDialog(win!, {
+      properties: ["openFile", "multiSelections"],
+      filters: [{ name: "Markdown", extensions: ["md", "markdown"] }, { name: t("All files"), extensions: ["*"] }],
+    });
+    return r.canceled ? [] : r.filePaths;
+  },
 };
 
 ipcMain.handle("invoke", async (e, cmd: string, args: unknown) => {
