@@ -3,9 +3,10 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { invoke, on, type FileDoc, type Startup } from "./api";
 import { confirm, DialogHost } from "./Dialog";
 import DocView from "./DocView";
+import { usePersistence } from "./persist";
 import { setLang, t } from "./i18n";
 import Sidebar, { tabName } from "./Sidebar";
-import { dirty, reducer, type State, type Tab } from "./tabs";
+import { dirty, reducer, restoreTabs, type State, type Tab } from "./tabs";
 import { Button } from "./ui";
 
 const empty: State = { tabs: [], active: null, closed: [], collapsed: false };
@@ -19,6 +20,7 @@ export default function App() {
   // async handlers (dialogs, saving) must see the state as it is when they continue, not when they started
   const current = useRef(state);
   current.current = state;
+  const loadedDrafts = usePersistence(state, ready);
 
   const openPaths = useCallback(async (paths: string[]) => {
     for (const path of paths) {
@@ -30,6 +32,10 @@ export default function App() {
   useEffect(() => {
     invoke<Startup>("startup").then(async (s) => {
       setLang(s.lang);
+      const paths = s.session.tabs.flatMap((t) => (t.path ? [t.path] : []));
+      const docs = await Promise.all(paths.map((path) => invoke<FileDoc | null>("read_file", { path }).catch(() => null)));
+      loadedDrafts(s.drafts);
+      dispatch({ type: "init", state: restoreTabs(s.session, s.drafts, Object.fromEntries(paths.map((p, i) => [p, docs[i]]))) });
       await openPaths(s.open);
       setReady(true);
     });

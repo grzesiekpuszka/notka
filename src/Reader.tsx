@@ -28,12 +28,14 @@ export default function Reader({ text, path, scroll, onScroll, onOpen, takeHash,
     highlightAll(doc.current!);
   }, [html]);
 
-  // restore where the reader left this document
+  // restore where the reader left this document; images that load later grow it, so repeat until the user scrolls
+  const target = useRef<(() => void) | null>(null);
   useLayoutEffect(() => {
     const hash = takeHash();
-    if (hash) scrollTo(doc.current!, hash);
-    else box.current!.scrollTop = scroll;
+    target.current = hash ? () => scrollTo(doc.current!, hash) : () => (box.current!.scrollTop = scroll);
+    target.current();
   }, []);
+  const settle = () => (target.current = null);
 
   const onClick = (e: React.MouseEvent) => {
     const a = (e.target as HTMLElement).closest("a");
@@ -53,6 +55,10 @@ export default function Reader({ text, path, scroll, onScroll, onOpen, takeHash,
     <div
       ref={box}
       className="h-full overflow-y-auto"
+      onLoadCapture={() => target.current?.()}
+      onWheel={settle}
+      onPointerDown={settle}
+      onKeyDown={settle}
       onScroll={(e) => {
         const top = e.currentTarget.scrollTop;
         clearTimeout(timer.current);
