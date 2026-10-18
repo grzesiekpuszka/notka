@@ -18,6 +18,7 @@ const csp = {
 export default defineConfig({
   plugins: [react(), tailwindcss(), csp],
   base: "./",
-  build: { outDir: "out/renderer", emptyOutDir: true },
+  // the editor chunk is big on purpose: it loads only on the first Edit
+  build: { outDir: "out/renderer", emptyOutDir: true, chunkSizeWarningLimit: 600 },
   server: { port: 5174, strictPort: true },
 });

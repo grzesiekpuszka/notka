@@ -4,6 +4,12 @@ import { findRanges } from "./find";
 import { t } from "./i18n";
 import { IconButton } from "./ui";
 
+// Tailwind's CSS optimizer doesn't know ::highlight() yet and warns about it, so these rules stay out of styles.css
+const style = document.createElement("style");
+style.textContent = `::highlight(find) { background-color: color-mix(in srgb, var(--c-warning) 35%, transparent); }
+::highlight(find-current) { background-color: var(--c-accent); color: var(--c-on-accent); }`;
+document.head.append(style);
+
 type Props = { root: () => HTMLElement | null; text: string; focus: number; onClose(): void };
 
 export default function FindBar({ root, text, focus, onClose }: Props) {
