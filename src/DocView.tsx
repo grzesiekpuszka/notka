@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { invoke, type Encoding, type Mode } from "./api";
 import FindBar from "./FindBar";
 import type { EditorHandle } from "./format";
@@ -54,6 +54,8 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onReload, fin
   const handle = useRef<EditorHandle | null>(null);
   const preview = useRef<HTMLDivElement>(null);
   const text = usePreview(tab.text);
+  // the toolbar re-renders this view on every cursor move; counting a big document each time would lag
+  const words = useMemo(() => tab.text.split(/\s+/).filter(Boolean).length, [tab.text]);
   const findRoot = useCallback(() => preview.current?.querySelector<HTMLElement>(".md") ?? null, []);
   const find = finding > 0 && <FindBar root={findRoot} text={text} focus={finding} onClose={onFindClose} />;
   const setMode = (mode: Mode) => dispatch({ type: "setMode", id: tab.id, mode });
@@ -84,7 +86,7 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onReload, fin
 
   return (
     <div className="flex h-full flex-col">
-      <Toolbar handle={handle.current} tick={tick} mode={tab.mode} onMode={setMode} onLink={link} onImage={image} menu={menu} update={update} />
+      <Toolbar handleRef={handle} tick={tick} mode={tab.mode} onMode={setMode} onLink={link} onImage={image} menu={menu} update={update} />
       <div className="relative">
         {linking !== null && (
           <LinkPopover
@@ -165,7 +167,7 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onReload, fin
       )}
       <div className="flex h-6 shrink-0 items-center gap-4 border-t border-line px-3.5 text-[11px] text-muted">
         {tab.mode === "markdown" && <span>{t("Ln {line}, Col {col}", { line: cursor[0], col: cursor[1] })}</span>}
-        <span>{t("{n} words", { n: tab.text.split(/\s+/).filter(Boolean).length })}</span>
+        <span>{t("{n} words", { n: words })}</span>
         <span>{encodings[tab.meta.encoding]}</span>
       </div>
     </div>

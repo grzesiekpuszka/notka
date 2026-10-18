@@ -6,13 +6,16 @@ import {
   commonmark,
   createCodeBlockCommand,
   imageSchema,
+  inlineCodeKeymap,
   insertHrCommand,
   insertImageCommand,
   toggleEmphasisCommand,
   toggleInlineCodeCommand,
   toggleLinkCommand,
+  remarkPreserveEmptyLinePlugin,
   toggleStrongCommand,
   turnIntoTextCommand,
+  updateLinkCommand,
   wrapInBlockquoteCommand,
   wrapInBulletListCommand,
   wrapInHeadingCommand,
@@ -38,7 +41,23 @@ export type WysiwygOptions = {
   onLink?(): void;
 };
 
-export type Wysiwyg = { handle: EditorHandle; view: EditorView; dom: HTMLElement; getMarkdown(): string; setMarkdown(md: string): void; destroy(): void };
+export type Wysiwyg = {
+  handle: EditorHandle;
+  view: EditorView;
+  dom: HTMLElement;
+  getMarkdown(): string;
+  setMarkdown(md: string): void;
+  /** reports pending edits now; the markdown, or null if there was nothing to report */
+  flush(): string | null;
+  destroy(): void;
+};
+
+// remark escapes every "[" and "*"; these can't start a link or emphasis, so they stay as the user wrote them
+const relaxEscapes = (md: string) =>
+  md.replace(/\\\[(?![^\]\n]*\][(\[:])/g, "[").replace(/(^|[ \t])\\\*(?=[ \t]|$)/gm, "$1*");
+
+// a local file: no scheme (a drive letter is not one), not protocol-relative
+const local = (src: string) => !/^([a-z][a-z0-9+.-]+:|\/\/)/i.test(src);
 
 const MARKS: [Format, string][] = [
   ["bold", "strong"],
@@ -52,6 +71,17 @@ export async function createEditor(o: WysiwygOptions): Promise<Wysiwyg> {
   // Loading a document normalizes it (that is not an edit): changes count only after the user did something.
   let touched = false;
   let silent = false;
+  // serializing the whole document is the slow part of an edit: it happens after a pause in typing, or on flush
+  let pending = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const report = () => {
+    clearTimeout(timer);
+    if (!pending) return null;
+    pending = false;
+    const md = serialize(view.state.doc);
+    o.onChange(md);
+    return md;
+  };
   let serialize: (doc: Node) => string = () => "";
   const touch = () => ((touched = true), false);
 
@@ -93,14 +123,19 @@ export async function createEditor(o: WysiwygOptions): Promise<Wysiwyg> {
               const last = table.lastChild!.lastChild!;
               if ($head.end(d) - 2 - last.nodeSize > $head.pos) return false;
               touched = true;
-              return command(addRowAfterCommand.key) && command(goToNextTableCellCommand.key);
+              const done = command(addRowAfterCommand.key) && command(goToNextTableCellCommand.key);
+              report();
+              return done;
             }
             return false;
           },
         },
         view: () => ({
           update: (view, prev) => {
-            if (touched && !silent && !view.state.doc.eq(prev.doc)) o.onChange(serialize(view.state.doc));
+            if (!touched || silent || view.state.doc.eq(prev.doc)) return;
+            pending = true;
+            clearTimeout(timer);
+            timer = setTimeout(report, 300);
           },
         }),
       }),
@@ -110,7 +145,7 @@ export async function createEditor(o: WysiwygOptions): Promise<Wysiwyg> {
   const images = $view(imageSchema.node, () => (node) => {
     const img = document.createElement("img");
     const src: string = node.attrs.src;
-    img.src = o.dir && !/^([a-z][a-z0-9+.-]*:|\/\/)/i.test(src) ? imageUrl(resolveLink(o.dir, src).path) : src;
+    img.src = local(src) && (o.dir || /^[a-z]:[\\/]/i.test(src)) ? imageUrl(resolveLink(o.dir ?? "", src).path) : src;
     img.alt = node.attrs.alt;
     if (node.attrs.title) img.title = node.attrs.title;
     return { dom: img };
@@ -122,9 +157,19 @@ export async function createEditor(o: WysiwygOptions): Promise<Wysiwyg> {
       ctx.set(defaultValueCtx, o.markdown);
       ctx.update(editorViewOptionsCtx, (prev) => ({ ...prev, attributes: { class: "md" } }));
       // one house style when the document is written back: "-" bullets, "*" emphasis, "**" strong
-      ctx.update(remarkStringifyOptionsCtx, (prev) => ({ ...prev, bullet: "-" as const, emphasis: "*" as const, strong: "*" as const, rule: "-" as const }));
+      ctx.update(remarkStringifyOptionsCtx, (prev) => ({
+        ...prev,
+        bullet: "-" as const,
+        emphasis: "*" as const,
+        strong: "*" as const,
+        rule: "-" as const,
+        handlers: { ...prev.handlers, text: (...args: any[]) => relaxEscapes((prev.handlers!.text as any)(...args)) },
+      }));
+      // Ctrl+E switches between WYSIWYG and Markdown in this app
+      ctx.update(inlineCodeKeymap.ctx.key, (prev) => ({ ...prev, ToggleInlineCode: { ...prev.ToggleInlineCode, shortcuts: [] } }));
     })
-    .use(commonmark)
+    // without it empty paragraphs would be written as <br />
+    .use(commonmark.filter((p) => p !== remarkPreserveEmptyLinePlugin.plugin && p !== remarkPreserveEmptyLinePlugin.options))
     .use(gfm)
     .use(frontmatter)
     .use(history)
@@ -173,8 +218,11 @@ export async function createEditor(o: WysiwygOptions): Promise<Wysiwyg> {
         if (view.state.selection.empty) {
           const { from } = view.state.selection;
           view.dispatch(view.state.tr.insertText(arg!, from).addMark(from, from + arg!.length, view.state.schema.marks.link.create({ href: arg })));
-        } else command(toggleLinkCommand.key, { href: arg });
+        } else if (view.state.doc.rangeHasMark(view.state.selection.from, view.state.selection.to, view.state.schema.marks.link))
+          command(updateLinkCommand.key, { href: arg });
+        else command(toggleLinkCommand.key, { href: arg });
       }
+      report();
     },
     active() {
       const { $from, empty } = view.state.selection;
@@ -194,11 +242,15 @@ export async function createEditor(o: WysiwygOptions): Promise<Wysiwyg> {
     view,
     dom: view.dom,
     getMarkdown: () => serialize(view.state.doc),
+    flush: report,
     setMarkdown(md) {
       silent = true;
       editor.action(replaceAll(md));
       silent = false;
     },
-    destroy: () => void editor.destroy(),
+    destroy: () => {
+      clearTimeout(timer);
+      void editor.destroy();
+    },
   };
 }

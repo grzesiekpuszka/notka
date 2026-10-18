@@ -10,3 +10,6 @@ export interface EditorHandle {
   selectedText(): string;
   focus(): void;
 }
+
+/** tab id → reports that tab's unreported WYSIWYG edits; the markdown, or null when there were none */
+export const pendingEdits = new Map<string, () => string | null>();

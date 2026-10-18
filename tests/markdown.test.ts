@@ -31,3 +31,7 @@ test("documents can't restyle the app", () => {
   expect(html).not.toContain("<style");
   expect(html).not.toContain("position:fixed");
 });
+
+test("absolute image paths go through mdimg", () => {
+  expect(render("![a](C:/x/y.png)", null)).toContain('src="mdimg://f/C%3A%5Cx%5Cy.png"');
+});

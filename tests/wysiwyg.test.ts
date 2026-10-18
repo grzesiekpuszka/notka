@@ -77,6 +77,7 @@ test("input rule makes a heading", async () => {
     const handled = view.someProp("handleTextInput", (f) => f(view, from, to, ch, () => view.state.tr.insertText(ch, from, to)));
     if (!handled) view.dispatch(view.state.tr.insertText(ch, from, to));
   }
+  editor.flush();
   expect(onChange.mock.lastCall![0]).toMatch(/^## x/);
   editor.destroy();
 });
@@ -147,5 +148,57 @@ test("relative images display through mdimg", async () => {
   const editor = await createEditor({ root, markdown: "![a](img/p.png)\n", dir: "D:\\d", onChange: vi.fn(), onOpenLink: vi.fn() });
   expect(root.querySelector("img[alt=a]")!.getAttribute("src")).toMatch(/^mdimg:\/\/f\//);
   expect(editor.getMarkdown()).toContain("img/p.png");
+  editor.destroy();
+});
+
+const key = (view: import("@milkdown/kit/prose/view").EditorView, init: KeyboardEventInit) =>
+  view.someProp("handleKeyDown", (f) => f(view, new KeyboardEvent("keydown", init)));
+
+test("ctrl+e is left to the app (switches mode), it doesn't format", async () => {
+  const { editor, onChange } = await make("# Title\n");
+  select(editor.view, "Tit");
+  editor.dom.dispatchEvent(new KeyboardEvent("keydown", { key: "x" }));
+  expect(key(editor.view, { key: "e", ctrlKey: true })).toBeFalsy();
+  expect(onChange).not.toHaveBeenCalled();
+  editor.destroy();
+});
+
+test("empty paragraphs are not saved as html", async () => {
+  const { editor } = await make("a\n\nb\n");
+  select(editor.view, "a");
+  const view = editor.view;
+  view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, view.state.selection.to)));
+  editor.dom.dispatchEvent(new KeyboardEvent("keydown", { key: "x" }));
+  key(view, { key: "Enter" });
+  key(view, { key: "Enter" });
+  expect(editor.getMarkdown()).not.toContain("<br");
+  editor.destroy();
+});
+
+test("ctrl+k on a link changes its address instead of removing it", async () => {
+  const { editor, onChange } = await make("see [docs](https://old)\n");
+  select(editor.view, "docs");
+  editor.handle.run("link", "https://new");
+  expect(onChange.mock.lastCall![0]).toContain("[docs](https://new)");
+  editor.destroy();
+});
+
+test("absolute image paths display through mdimg even without a folder", async () => {
+  const root = document.createElement("div");
+  document.body.append(root);
+  const editor = await createEditor({ root, markdown: "![a](C:/x/y.png)\n", dir: null, onChange: vi.fn(), onOpenLink: vi.fn() });
+  expect(root.querySelector("img[alt=a]")!.getAttribute("src")).toMatch(/^mdimg:\/\/f\//);
+  editor.destroy();
+});
+
+test("typing is serialized after a pause, flush gives the text at once", async () => {
+  const { editor, onChange } = await make("ab\n");
+  const view = editor.view;
+  editor.dom.dispatchEvent(new KeyboardEvent("keydown", { key: "x" }));
+  view.dispatch(view.state.tr.insertText("X", 2));
+  expect(onChange).not.toHaveBeenCalled();
+  expect(editor.flush()).toContain("aXb");
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(editor.flush()).toBeNull();
   editor.destroy();
 });

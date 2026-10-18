@@ -11,8 +11,10 @@ export const initialMode = (text: string): Mode => (text.length > MAX_WYSIWYG ? 
 export function contentKey(md: string): string {
   const doc = new DOMParser().parseFromString(render(md, null), "text/html");
   const urls = [...doc.querySelectorAll("[href], [src]")].map((el) => el.getAttribute("href") ?? el.getAttribute("src"));
+  // neither shows in the rendered text; the visual editor inlines reference definitions, so they must count
   const comments = md.match(/<!--[\s\S]*?-->/g) ?? [];
-  return [doc.body.textContent!.replace(/\s+/g, " ").trim(), ...urls, ...comments].join("\n");
+  const definitions = md.match(/^ {0,3}\[[^\]]+\]:.*$/gm) ?? [];
+  return [doc.body.textContent!.replace(/\s+/g, " ").trim(), ...urls, ...comments, ...definitions].join("\n");
 }
 
 /** The document as the visual editor would save it. */

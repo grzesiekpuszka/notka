@@ -1,6 +1,6 @@
 // Loaded with React.lazy: until Milkdown is ready the fast read-only render stands in, so text shows at once.
 import { useEffect, useRef, useState, type RefObject } from "react";
-import type { EditorHandle } from "../format";
+import { pendingEdits, type EditorHandle } from "../format";
 import { dirname } from "../paths";
 import Reader from "../Reader";
 import type { Tab } from "../tabs";
@@ -56,6 +56,8 @@ export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, 
         dir: tab.path && dirname(tab.path),
         onChange: (md) => {
           own.current = md;
+          // its own output passed the check by construction: a tab switch must not check it again
+          trusted.set(tab.id, md);
           props.current.onChange(md);
           props.current.onUpdate();
         },
@@ -65,6 +67,7 @@ export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, 
         if (!alive) return e.destroy();
         editor.current = e;
         handleRef.current = e.handle;
+        pendingEdits.set(tab.id, e.flush);
         setReady(true);
       });
     });
@@ -74,6 +77,8 @@ export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, 
       alive = false;
       document.removeEventListener("selectionchange", selection);
       handleRef.current = null;
+      pendingEdits.delete(tab.id);
+      editor.current?.flush();
       editor.current?.destroy();
       editor.current = null;
     };
@@ -84,6 +89,7 @@ export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, 
     const e = editor.current;
     if (!ready || !e) return;
     e.view.focus();
+    onUpdate();
     const hash = takeHash();
     const target = hash && e.dom.querySelector(`[id="${CSS.escape(decodeURIComponent(hash))}"]`);
     if (target) target.scrollIntoView();

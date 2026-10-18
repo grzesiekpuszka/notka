@@ -3,13 +3,14 @@ import { Marked } from "marked";
 import { gfmHeadingId } from "marked-gfm-heading-id";
 import { imageUrl, resolveLink } from "./paths";
 
-const remote = /^([a-z][a-z0-9+.-]*:|\/\/)/i;
+// a scheme has 2+ letters, so "C:" is a drive, not a scheme
+const remote = /^([a-z][a-z0-9+.-]+:|\/\/)/i;
 let dir: string | null = null;
 
 const marked = new Marked({ gfm: true });
 marked.use(gfmHeadingId(), {
   walkTokens(token) {
-    if (token.type === "image" && dir && !remote.test(token.href)) token.href = imageUrl(resolveLink(dir, token.href).path);
+    if (token.type === "image" && !remote.test(token.href) && (dir || /^[a-z]:[\\/]/i.test(token.href))) token.href = imageUrl(resolveLink(dir ?? "", token.href).path);
   },
 });
 

@@ -22,8 +22,9 @@ export type Action =
   | { type: "init"; state: State };
 
 const MAX_CLOSED = 20;
-// beyond this the visual editor gets slow: such files open straight in Markdown mode
-export const MAX_WYSIWYG = 1_000_000;
+// beyond this the visual editor gets slow (measured: 300 kB takes ~3 s to become editable, keys lag ~40 ms; 900 kB
+// ~15 s and ~400 ms): such files open straight in Markdown mode
+export const MAX_WYSIWYG = 200_000;
 // new documents get Windows line endings
 export const emptyMeta: DocMeta = { encoding: "utf8", eol: "\r\n" };
 

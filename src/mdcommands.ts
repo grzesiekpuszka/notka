@@ -55,7 +55,8 @@ export function format(text: string, sel: [number, number], f: Format, arg = "")
   const put = (s: string, cursor: number): Edit => ({ text: text.slice(0, from) + s + text.slice(to), sel: [from + cursor, from + cursor] });
   switch (f) {
     case "link":
-      return put(`[${selected}](${arg})`, selected.length + arg.length + 4);
+      // an empty link text would vanish in the visual editor
+      return put(`[${selected || arg}](${arg})`, (selected || arg).length + arg.length + 4);
     case "image": {
       const s = `![](${arg.replace(/ /g, "%20")})`;
       return put(s, s.length);

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { invoke, on } from "./api";
+import { pendingEdits } from "./format";
 import { dirty, toSession, type State } from "./tabs";
 
 /**
@@ -50,9 +51,15 @@ export function usePersistence(state: State, ready: boolean) {
         // before the session is loaded the state is empty: saving it would wipe the session and, on the next start, its drafts
         if (!started.current) return invoke("flushed");
         const s = current.current;
-        const pending = s.tabs.filter((t) => timers.current.has(t.id));
+        // typing the visual editor hasn't reported yet goes straight into the drafts
+        const typed = new Map([...pendingEdits].flatMap(([id, flush]) => {
+          const text = flush();
+          return text === null ? [] : [[id, text] as const];
+        }));
+        const pending = s.tabs.filter((t) => timers.current.has(t.id) || typed.has(t.id));
         for (const t of pending) clearTimeout(timers.current.get(t.id));
-        await Promise.all([invoke("save_session", toSession(s)), ...pending.map((t) => invoke("save_draft", { id: t.id, text: t.text }))]).catch(() => {});
+        const drafts = pending.map((t) => invoke("save_draft", { id: t.id, text: typed.get(t.id) ?? t.text }));
+        await Promise.all([invoke("save_session", toSession(s)), ...drafts]).catch(() => {});
         invoke("flushed");
       }),
     [],

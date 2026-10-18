@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { FileDoc, Session } from "../src/api";
-import { dirty, reducer, restoreTabs, type Action, type State } from "../src/tabs";
+import { dirty, MAX_WYSIWYG, reducer, restoreTabs, type Action, type State } from "../src/tabs";
 
 const meta = { encoding: "utf8", eol: "\n" } as const;
 const doc = (path: string, text = `# ${path}`): FileDoc => ({ path, text, meta });
@@ -187,7 +187,7 @@ test("restoreTabs keeps a tab whose file can't be read now", () => {
 });
 
 test("large files open in markdown mode with a notice", () => {
-  const s = run({ type: "open", doc: doc("A", "a".repeat(1_000_001)) });
+  const s = run({ type: "open", doc: doc("A", "a".repeat(MAX_WYSIWYG + 1)) });
   expect(s.tabs[0].mode).toBe("markdown");
   expect(s.tabs[0].notice).toBeTruthy();
   expect(run({ type: "open", doc: doc("B", "small") }).tabs[0]).toMatchObject({ mode: "wysiwyg", notice: null });

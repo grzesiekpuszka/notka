@@ -14,14 +14,15 @@ import {
   Table,
   type LucideIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import type { Mode } from "./api";
 import type { Block, EditorHandle, Format } from "./format";
 import { t } from "./i18n";
 import { cx } from "./ui";
 
 type Props = {
-  handle: EditorHandle | null;
+  /** read when used: the editor behind it changes (mode switch) without re-rendering the toolbar */
+  handleRef: RefObject<EditorHandle | null>;
   /** changes whenever the editor's selection or content changes, so active states refresh */
   tick: number;
   mode: Mode;
@@ -59,14 +60,14 @@ const blocks: [Block, string][] = [
   ["h3", "Heading 3"],
 ];
 
-export default function Toolbar({ handle, mode, onMode, onLink, onImage, menu, update }: Props) {
-  const active = handle?.active() ?? new Set<Format>();
+export default function Toolbar({ handleRef, mode, onMode, onLink, onImage, menu, update }: Props) {
+  const active = handleRef.current?.active() ?? new Set<Format>();
   const block = blocks.find(([b]) => active.has(b))?.[0] ?? "p";
   const run = (f: Format) => {
     if (f === "link") return onLink();
     if (f === "image") return onImage();
-    handle?.run(f);
-    handle?.focus();
+    handleRef.current?.run(f);
+    handleRef.current?.focus();
   };
 
   return (
@@ -75,8 +76,8 @@ export default function Toolbar({ handle, mode, onMode, onLink, onImage, menu, u
         value={block}
         aria-label={t("Text style")}
         onChange={(e) => {
-          handle?.run(e.target.value as Block);
-          handle?.focus();
+          handleRef.current?.run(e.target.value as Block);
+          handleRef.current?.focus();
         }}
         className="mr-1 h-[30px] w-32 rounded-md border border-line bg-surface px-2 text-[13px] text-fg outline-none focus:border-accent"
       >

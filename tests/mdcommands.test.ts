@@ -56,3 +56,7 @@ test("hr and table go on their own lines", () => {
 test("blocks go after a selection instead of replacing it", () => {
   expect(format("keep me", [0, 7], "hr").text).toBe("keep me\n\n---\n");
 });
+
+test("link with no selection uses the address as its text", () => {
+  expect(format("a ", [2, 2], "link", "https://x").text).toBe("a [https://x](https://x)");
+});

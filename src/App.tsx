@@ -4,6 +4,7 @@ import { invoke, on, type FileDoc, type Startup, type Theme, type UpdateState } 
 import { confirm, DialogHost } from "./Dialog";
 import DocView from "./DocView";
 import Menu from "./Menu";
+import { pendingEdits } from "./format";
 import { usePersistence } from "./persist";
 import { setLang, t } from "./i18n";
 import TabBar, { tabName } from "./TabBar";
@@ -87,7 +88,9 @@ export default function App() {
   const openDialog = async () => openPaths(await invoke<string[]>("open_dialog"));
   const newDoc = () => dispatch({ type: "new" });
 
-  const save = async (tab: Tab, as = false) => {
+  const save = async (from: Tab, as = false) => {
+    // the visual editor reports typing after a pause: take what is on screen now
+    const tab = { ...from, text: pendingEdits.get(from.id)?.() ?? from.text };
     let meta = tab.meta;
     if (meta.encoding === "cp1250") {
       if ((await confirm(tabName(tab), t("This file will be saved as UTF-8."), [t("OK"), t("Cancel")])) !== 0) return false;
@@ -103,8 +106,9 @@ export default function App() {
   };
 
   const close = async (id: string) => {
-    const tab = current.current.tabs.find((x) => x.id === id);
-    if (!tab) return;
+    const found = current.current.tabs.find((x) => x.id === id);
+    if (!found) return;
+    const tab = { ...found, text: pendingEdits.get(id)?.() ?? found.text };
     if (dirty(tab)) {
       const choice = await confirm(tabName(tab), t("Do you want to save changes?"), [t("Save"), t("Don't save"), t("Cancel")]);
       if (choice === 2 || (choice === 0 && !(await save(tab)))) return;

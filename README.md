@@ -11,7 +11,7 @@ them like in any word processor; markdown is just how they are saved.
 - Portable: one folder, nothing installed; updates itself from GitHub releases
 
 Saving from the visual editor writes the whole document in one consistent markdown style. Files the visual editor can't
-keep exactly, and files over 1 MB, open in Markdown mode.
+keep exactly, and files over 200 kB, open in Markdown mode.
 
 ## Install
 

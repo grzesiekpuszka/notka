@@ -115,6 +115,8 @@ export default function Editor({ text, onChange, onCursor, onScroll, onLink, han
       selectedText: () => v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to),
       focus: () => v.focus(),
     };
+    // the toolbar picks the new editor up
+    props.current.onCursor(1, 1);
     v.focus();
     return () => {
       handleRef.current = null;
