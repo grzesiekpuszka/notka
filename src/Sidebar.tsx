@@ -18,7 +18,7 @@ type Props = {
 };
 
 export default function Sidebar({ state, onActivate, onClose, onNew, onCollapse, footer, notice }: Props) {
-  const mini = state.collapsed;
+  const mini = false;
   return (
     <aside className={cx("flex shrink-0 flex-col gap-0.5 px-2 pb-2", mini ? "w-[52px] items-center" : "w-60")}>
       <div className={cx("mb-1 flex h-10 items-center", mini ? "justify-center" : "justify-between")}>

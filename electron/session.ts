@@ -7,7 +7,7 @@ const exists = (f: string) => fs.existsSync(f);
 
 export type Settings = { theme: Theme; bounds?: Rectangle; maximized?: boolean };
 
-const EMPTY: Session = { tabs: [], active: null, closed: [], collapsed: false };
+const EMPTY: Session = { tabs: [], active: null, closed: [] };
 
 function readJson<T>(file: string, fallback: T): T {
   return parseJson(file, fallback) ?? fallback;

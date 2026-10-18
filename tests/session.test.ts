@@ -11,10 +11,9 @@ beforeEach(() => {
 });
 
 const session: Session = {
-  tabs: [{ id: "a", path: "C:\\a.md", untitled: 0, editing: true, scroll: 120 }, { id: "b", path: null, untitled: 1, editing: true, scroll: 0 }],
+  tabs: [{ id: "a", path: "C:\\a.md", untitled: 0, mode: "markdown" as const, scroll: 120 }, { id: "b", path: null, untitled: 1, mode: "markdown" as const, scroll: 0 }],
   active: "b",
-  closed: [{ id: "c", path: "C:\\c.md", untitled: 0, editing: false, scroll: 0 }],
-  collapsed: true,
+  closed: [{ id: "c", path: "C:\\c.md", untitled: 0, mode: "wysiwyg" as const, scroll: 0 }],
 };
 
 test("round-trips session and drafts", () => {
@@ -34,7 +33,7 @@ test("deletes orphan drafts on load", () => {
 
 test("corrupt session.json gives empty session", () => {
   fs.writeFileSync(path.join(dir, "session.json"), "{oops");
-  expect(loadSession(dir).session).toEqual({ tabs: [], active: null, closed: [], collapsed: false });
+  expect(loadSession(dir).session).toEqual({ tabs: [], active: null, closed: [] });
 });
 
 test("keeps drafts when session.json can't be parsed", () => {

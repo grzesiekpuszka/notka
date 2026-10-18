@@ -5,8 +5,9 @@ export type Encoding = "utf8" | "utf8bom" | "utf16le" | "utf16be" | "cp1250";
 export type DocMeta = { encoding: Encoding; eol: "\n" | "\r\n" };
 export type FileDoc = { path: string; text: string; meta: DocMeta };
 export type Theme = "system" | "light" | "dark";
-export type TabState = { id: string; path: string | null; untitled: number; editing: boolean; scroll: number };
-export type Session = { tabs: TabState[]; active: string | null; closed: TabState[]; collapsed: boolean };
+export type Mode = "wysiwyg" | "markdown";
+export type TabState = { id: string; path: string | null; untitled: number; mode: Mode; scroll: number };
+export type Session = { tabs: TabState[]; active: string | null; closed: TabState[] };
 export type UpdateState = { current: string; available: { version: string; notes: string; page: string } | null; downloaded: boolean };
 export type Startup = {
   session: Session;

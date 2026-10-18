@@ -67,13 +67,13 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onSave, onRel
         <span className="shrink-0 font-semibold">{tabName(tab)}</span>
         {tab.path && <span className="truncate text-xs text-muted">{dirname(tab.path)}</span>}
         <span className="flex-1" />
-        {tab.editing ? (
+        {tab.mode === "markdown" ? (
           <>
             <Button icon={Save} title={t("Save (Ctrl+S)")} aria-label={t("Save (Ctrl+S)")} onClick={onSave} />
-            <Button variant="primary" icon={Check} title={t("Done (Ctrl+E)")} aria-label={t("Done (Ctrl+E)")} onClick={() => dispatch({ type: "toggleEdit", id: tab.id })} />
+            <Button variant="primary" icon={Check} title={t("Done (Ctrl+E)")} aria-label={t("Done (Ctrl+E)")} onClick={() => dispatch({ type: "setMode", id: tab.id, mode: tab.mode === "wysiwyg" ? "markdown" : "wysiwyg" })} />
           </>
         ) : (
-          <Button variant="primary" icon={Pencil} title={t("Edit (Ctrl+E)")} aria-label={t("Edit (Ctrl+E)")} onClick={() => dispatch({ type: "toggleEdit", id: tab.id })} />
+          <Button variant="primary" icon={Pencil} title={t("Edit (Ctrl+E)")} aria-label={t("Edit (Ctrl+E)")} onClick={() => dispatch({ type: "setMode", id: tab.id, mode: tab.mode === "wysiwyg" ? "markdown" : "wysiwyg" })} />
         )}
       </div>
       {tab.changed && (
@@ -86,7 +86,7 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onSave, onRel
       {tab.missing && (
         <div className="shrink-0 border-b border-line bg-surface-2 px-4 py-2.5 text-muted">{t("The file can't be found or read. Save it to keep it.")}</div>
       )}
-      {tab.editing ? (
+      {tab.mode === "markdown" ? (
         <>
           <div className="flex min-h-0 flex-1">
             <Suspense fallback={<div className="flex-1 border-r border-line" />}>

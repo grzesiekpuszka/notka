@@ -11,7 +11,7 @@ test("flush before startup finished never overwrites the session", async () => {
   const listeners: Record<string, (p: unknown) => void> = {};
   const invoke = vi.fn(async () => ({ ok: true, value: null }));
   (window as any).smr = { invoke, on: (e: string, cb: (p: unknown) => void) => ((listeners[e] = cb), () => {}) };
-  const empty: State = { tabs: [], active: null, closed: [], collapsed: false };
+  const empty: State = { tabs: [], active: null, closed: [] };
   const Probe = () => (usePersistence(empty, false), null);
   await act(async () => createRoot(document.createElement("div")).render(createElement(Probe)));
   await act(async () => listeners.flush(undefined));

@@ -10,7 +10,7 @@ import Sidebar, { tabName } from "./Sidebar";
 import { dirty, reducer, restoreTabs, type State, type Tab } from "./tabs";
 import { Button, IconButton } from "./ui";
 
-const empty: State = { tabs: [], active: null, closed: [], collapsed: false };
+const empty: State = { tabs: [], active: null, closed: [] };
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 const themes: [Theme, string, typeof Sun][] = [
   ["system", "System", Monitor],
@@ -164,7 +164,7 @@ export default function App() {
     else if (k === "w" && tab) run(() => close(tab.id));
     else if (k === "t") run(restore);
     else if (k === "tab") run(() => dispatch({ type: "cycle", step: e.shiftKey ? -1 : 1 }));
-    else if (k === "e" && tab) run(() => dispatch({ type: "toggleEdit", id: tab.id }));
+    else if (k === "e" && tab) run(() => dispatch({ type: "setMode", id: tab.id, mode: tab.mode === "wysiwyg" ? "markdown" : "wysiwyg" }));
     else if (k === "f" && tab) run(() => setFinding((n) => n + 1));
   };
   useEffect(() => {
@@ -187,25 +187,16 @@ export default function App() {
         onActivate={(id) => dispatch({ type: "activate", id })}
         onClose={close}
         onNew={newDoc}
-        onCollapse={() => dispatch({ type: "collapse" })}
+        onCollapse={() => {}}
         notice={
-          update?.available &&
-          (state.collapsed ? (
-            <IconButton
-              icon={Download}
-              label={installing === null ? t("Install version {version} and restart", { version: update.available.version }) : t("Downloading… {n}%", { n: installing })}
-              disabled={installing !== null}
-              onClick={install}
-              className="mb-1 bg-accent-soft text-accent hover:bg-accent-soft hover:text-accent-hover dark:hover:bg-accent-soft"
-            />
-          ) : (
+          update?.available && (
             <div className="mb-1.5 rounded-lg bg-accent-soft p-2.5 text-[13px]">
               <div className="mb-2">{t("Version {version} is available.", { version: update.available.version })}</div>
               <Button variant="primary" icon={Download} disabled={installing !== null} onClick={install} className="h-7 w-full">
                 {installing === null ? t("Install and restart") : t("Downloading… {n}%", { n: installing })}
               </Button>
             </div>
-          ))
+          )
         }
         footer={
           <>
