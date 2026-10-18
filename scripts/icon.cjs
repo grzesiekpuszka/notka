@@ -1,4 +1,5 @@
-// Renders resources/icon.svg into resources/icon.ico (16–256 px) and icon.png using Electron itself.
+// Renders resources/icon.svg (the app) and md-file.svg (the icon of .md files) into .ico files (16–256 px), plus
+// icon.png, using Electron itself.
 // Run: pnpm icon
 const { app, BrowserWindow } = require("electron");
 const fs = require("node:fs");
@@ -37,11 +38,16 @@ function ico(images) {
   return Buffer.concat([header, ...images.map((x) => x.png)]);
 }
 
+// rendering one icon closes its window; that must not end the app before the next one
+app.on("window-all-closed", () => {});
+
 app.whenReady().then(async () => {
-  const svg = fs.readFileSync(path.join(res, "icon.svg"), "utf8");
-  const big = await render(svg);
-  const png = (size) => big.resize({ width: size, height: size, quality: "best" }).toPNG();
-  fs.writeFileSync(path.join(res, "icon.ico"), ico(SIZES.map((size) => ({ size, png: png(size) }))));
-  fs.writeFileSync(path.join(res, "icon.png"), png(512));
+  for (const name of ["icon", "md-file"]) {
+    const big = await render(fs.readFileSync(path.join(res, `${name}.svg`), "utf8"));
+    const png = (size) => big.resize({ width: size, height: size, quality: "best" }).toPNG();
+    fs.writeFileSync(path.join(res, `${name}.ico`), ico(SIZES.map((size) => ({ size, png: png(size) }))));
+    if (name === "icon") fs.writeFileSync(path.join(res, "icon.png"), png(512));
+    if (name === "md-file") fs.writeFileSync(path.join(process.env.PREVIEW_DIR ?? res, "md-file-preview.png"), png(256));
+  }
   app.quit();
 });
