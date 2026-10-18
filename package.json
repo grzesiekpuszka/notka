@@ -68,7 +68,8 @@
     ],
     "win": {
       "target": "dir",
-      "executableName": "simple-markdown-reader"
+      "executableName": "simple-markdown-reader",
+      "icon": "resources/icon.ico"
     },
     "asar": true,
     "electronDist": "node_modules/electron/dist"

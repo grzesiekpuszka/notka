@@ -16,6 +16,7 @@ export type Startup = {
   lang: Lang;
   version: string;
   updated: "ok" | "failed" | null;
+  update: UpdateState;
 };
 
 type Result = { ok: true; value: any } | { ok: false; error: string };

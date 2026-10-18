@@ -14,9 +14,10 @@ type Props = {
   onNew(): void;
   onCollapse(): void;
   footer: ReactNode;
+  notice?: ReactNode;
 };
 
-export default function Sidebar({ state, onActivate, onClose, onNew, onCollapse, footer }: Props) {
+export default function Sidebar({ state, onActivate, onClose, onNew, onCollapse, footer, notice }: Props) {
   const mini = state.collapsed;
   return (
     <aside className={cx("flex shrink-0 flex-col gap-0.5 px-2 pb-2", mini ? "w-[52px] items-center" : "w-60")}>
@@ -68,6 +69,7 @@ export default function Sidebar({ state, onActivate, onClose, onNew, onCollapse,
           );
         })}
       </nav>
+      {!mini && notice}
       <div className={cx("flex items-center gap-0.5", mini && "flex-col")}>{footer}</div>
     </aside>
   );

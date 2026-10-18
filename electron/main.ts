@@ -6,6 +6,7 @@ import { setDefaultApp } from "./assoc";
 import { readDoc, writeDoc } from "./files";
 import { serveImages } from "./images";
 import { dropDraft, loadSession, loadSettings, saveDraft, saveSession, saveSettings } from "./session";
+import { applyUpdate, afterUpdate, checkUpdates, downloadUpdate, scheduleChecks, updateState } from "./updates";
 import { DATA, emit, errorText } from "./util";
 import { watchFiles } from "./watch";
 import { setLang, t, type Lang } from "../src/i18n";
@@ -14,6 +15,7 @@ import { setLang, t, type Lang } from "../src/i18n";
 if (!app.requestSingleInstanceLock()) app.exit(0);
 
 let win: BrowserWindow | undefined;
+let updated: Startup["updated"] = null;
 const lang: Lang = app.getLocale().startsWith("pl") ? "pl" : "en";
 setLang(lang);
 // the exe, plus the app path when run through electron.exe in dev
@@ -32,7 +34,8 @@ const handlers: Record<string, (args: any) => unknown> = {
     theme: loadSettings(DATA).theme,
     lang,
     version: app.getVersion(),
-    updated: null,
+    updated,
+    update: updateState(),
   }),
   open_external: ({ url }: { url: string }) => openLink(url),
   save_session: (s: Session) => saveSession(DATA, s),
@@ -45,6 +48,9 @@ const handlers: Record<string, (args: any) => unknown> = {
     saveSettings(DATA, { theme });
   },
   set_default_app: () => setDefaultApp(process.execPath),
+  check_updates: () => checkUpdates(),
+  download_update: () => downloadUpdate(),
+  apply_update: () => applyUpdate(),
   read_file: ({ path }: { path: string }) => readDoc(path),
   write_file: ({ path, text, meta }: { path: string; text: string; meta: DocMeta }) => writeDoc(path, text, meta),
   save_as: async ({ text, meta, name }: { text: string; meta: DocMeta; name: string }) => {
@@ -128,6 +134,8 @@ app.on("second-instance", (_e, argv, cwd) => {
 app.whenReady().then(() => {
   // the default menu's accelerators (Ctrl+W closes the window, Ctrl+R reloads) would beat the app's shortcuts
   Menu.setApplicationMenu(null);
+  updated = afterUpdate();
+  scheduleChecks();
   serveImages();
   createWindow();
 });

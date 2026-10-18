@@ -1,6 +1,6 @@
-import { FilePlus, FileType, FolderOpen, Monitor, Moon, Sun } from "lucide-react";
+import { Download, FilePlus, FileType, FolderOpen, Monitor, Moon, RefreshCw, Sun } from "lucide-react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { invoke, on, type FileDoc, type Startup, type Theme } from "./api";
+import { invoke, on, type FileDoc, type Startup, type Theme, type UpdateState } from "./api";
 import { confirm, DialogHost } from "./Dialog";
 import DocView from "./DocView";
 import Menu from "./Menu";
@@ -24,6 +24,9 @@ export default function App() {
   const [finding, setFinding] = useState(0);
   const [theme, setTheme] = useState<Theme>("system");
   const [version, setVersion] = useState("");
+  const [update, setUpdate] = useState<UpdateState | null>(null);
+  const [installing, setInstalling] = useState<number | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   useEffect(() => setFinding(0), [state.active]);
   const hash = useRef<string | null>(null);
   const tab = state.tabs.find((x) => x.id === state.active);
@@ -44,6 +47,8 @@ export default function App() {
       setLang(s.lang);
       setTheme(s.theme);
       setVersion(s.version);
+      setUpdate(s.update);
+      if (s.updated) setToast(s.updated === "ok" ? t("Updated to {version}.", { version: s.version }) : t("The update couldn't be installed; the previous version was restored."));
       const paths = s.session.tabs.flatMap((t) => (t.path ? [t.path] : []));
       const docs = await Promise.all(paths.map((path) => invoke<FileDoc | null>("read_file", { path }).catch(() => null)));
       loadedDrafts(s.drafts);
@@ -51,7 +56,10 @@ export default function App() {
       await openPaths(s.open);
       setReady(true);
     });
-    const offs = [on("open", openPaths), on("file_changed", (doc: FileDoc) => dispatch({ type: "disk", doc })), on("file_missing", (path: string) => dispatch({ type: "missing", path }))];
+    const offs = [on("open", openPaths), on("file_changed", (doc: FileDoc) => dispatch({ type: "disk", doc })), on("file_missing", (path: string) => dispatch({ type: "missing", path })),
+      on("update", setUpdate),
+      on("progress", (p: { done: number; total: number }) => setInstalling(p.total ? Math.round((p.done / p.total) * 100) : 0)),
+    ];
     return () => offs.forEach((off) => off());
   }, [openPaths]);
 
@@ -108,6 +116,29 @@ export default function App() {
   const fail = (err: any) => confirm(t("Something went wrong"), String(err?.message ?? err), [t("OK")]);
   const [, themeLabel, ThemeIcon] = themes.find(([x]) => x === theme)!;
 
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const checkUpdates = async () => {
+    const s = await invoke<UpdateState>("check_updates");
+    setUpdate(s);
+    if (!s.available) setToast(t("You have the latest version."));
+  };
+
+  const install = async () => {
+    setInstalling(0);
+    try {
+      if (!update?.downloaded) await invoke("download_update");
+      await invoke("apply_update");
+    } catch (e) {
+      setInstalling(null);
+      fail(e);
+    }
+  };
+
   const restore = async () => {
     const entry = current.current.closed[0];
     if (!entry) return;
@@ -154,6 +185,16 @@ export default function App() {
         onClose={close}
         onNew={newDoc}
         onCollapse={() => dispatch({ type: "collapse" })}
+        notice={
+          update?.available && (
+            <div className="mb-1.5 rounded-lg bg-accent-soft p-2.5 text-[13px]">
+              <div className="mb-2">{t("Version {version} is available.", { version: update.available.version })}</div>
+              <Button variant="primary" icon={Download} disabled={installing !== null} onClick={install} className="h-7 w-full">
+                {installing === null ? t("Install and restart") : t("Downloading… {n}%", { n: installing })}
+              </Button>
+            </div>
+          )
+        }
         footer={
           <>
             <IconButton
@@ -170,7 +211,9 @@ export default function App() {
                 ...themes.map(([value, label, icon]) => ({ label: t(label), icon, checked: theme === value, onClick: () => pickTheme(value) })),
                 "-",
                 { label: t("Set as default for .md"), icon: FileType, onClick: () => invoke("set_default_app").catch(fail) },
+                { label: t("Check for updates"), icon: RefreshCw, onClick: () => checkUpdates().catch(fail) },
               ]}
+              badge={!!update?.available && state.collapsed}
               footer={`Simple Markdown Reader ${version}`}
             />
           </>
@@ -216,6 +259,11 @@ export default function App() {
         )}
       </main>
       <DialogHost />
+      {toast && (
+        <div className="fixed right-4 bottom-4 z-40 max-w-sm rounded-lg border border-line bg-surface px-4 py-2.5 shadow-lg" onClick={() => setToast(null)}>
+          {toast}
+        </div>
+      )}
     </div>
   );
 }
