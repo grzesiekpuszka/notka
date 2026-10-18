@@ -1,8 +1,9 @@
 // Whether the visual editor can be trusted with a document: style may change on save, content may not.
 import type { Mode } from "../api";
 import { render } from "../markdown";
+import { MAX_WYSIWYG } from "../tabs";
 
-export const MAX_WYSIWYG = 1_000_000;
+export { MAX_WYSIWYG };
 
 export const initialMode = (text: string): Mode => (text.length > MAX_WYSIWYG ? "markdown" : "wysiwyg");
 

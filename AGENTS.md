@@ -1,6 +1,7 @@
 # Simple Markdown Reader — agent notes
 
-Portable Windows 11 markdown reader/editor (Electron). Spec: `docs/superpowers/specs/2026-10-18-simple-markdown-reader-design.md`.
+Portable Windows 11 markdown editor (Electron). Specs: `docs/superpowers/specs/2026-10-18-simple-markdown-reader-design.md`
+and `docs/superpowers/specs/2026-10-18-wysiwyg-editor-design.md` (WYSIWYG editor, tabs in the title bar; amends the first).
 Sister project with the same stack and conventions: `D:\Projekty\Aplikacje\lokaldev`.
 
 ## Owner
@@ -16,8 +17,11 @@ Writes in Polish and wants short answers. Code, commits, README and release note
   only, markdown HTML sanitized with DOMPurify.
 - Portable: everything the app writes goes to `data\` next to the exe (`ROOT` in `electron/util.ts`), except the HKCU keys
   of "Set as default for .md".
-- Speed is a hard requirement (window < 1 s, tab switch / file open < 100 ms): never import CodeMirror or highlight.js
-  statically on the startup path.
+- Speed is a hard requirement (window < 1 s, tab switch / file open < 100 ms): never import Milkdown, CodeMirror or
+  highlight.js statically on the startup path. The WYSIWYG view (`src/wysiwyg/`) is lazy and shows the Reader until ready.
+- WYSIWYG must never create false changes: a tab's text stays the file text until a real edit (the editor reports changes
+  only after user input). Content must survive a round trip (`tests/fidelity.test.ts`); a document that doesn't, or is
+  over 1 MB, opens in Markdown mode with a notice. Both editors implement `EditorHandle` (`src/format.ts`) for the toolbar.
 - Commit every finished change in small commits. Bump `version` in package.json for user-visible changes and write
   `notes/v<version>.md` for each release. Never publish a pre-release on GitHub: the app only reads `releases/latest`.
 

@@ -185,3 +185,10 @@ test("restoreTabs keeps a tab whose file can't be read now", () => {
   expect(s.tabs).toHaveLength(1);
   expect(s.tabs[0].missing).toBe(true);
 });
+
+test("large files open in markdown mode with a notice", () => {
+  const s = run({ type: "open", doc: doc("A", "a".repeat(1_000_001)) });
+  expect(s.tabs[0].mode).toBe("markdown");
+  expect(s.tabs[0].notice).toBeTruthy();
+  expect(run({ type: "open", doc: doc("B", "small") }).tabs[0]).toMatchObject({ mode: "wysiwyg", notice: null });
+});

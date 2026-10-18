@@ -1,4 +1,5 @@
 import type { DocMeta, FileDoc, Mode, Session, TabState } from "./api";
+import { t } from "./i18n";
 
 export type Tab = TabState & { text: string; saved: string; meta: DocMeta; missing: boolean; changed: boolean; notice: string | null };
 export type State = { tabs: Tab[]; active: string | null; closed: TabState[] };
@@ -21,6 +22,8 @@ export type Action =
   | { type: "init"; state: State };
 
 const MAX_CLOSED = 20;
+// beyond this the visual editor gets slow: such files open straight in Markdown mode
+export const MAX_WYSIWYG = 1_000_000;
 // new documents get Windows line endings
 export const emptyMeta: DocMeta = { encoding: "utf8", eol: "\r\n" };
 
@@ -48,19 +51,22 @@ const untitledTab = (number: number): Tab => ({
   notice: null,
 });
 
-const fileTab = (doc: FileDoc, from?: TabState): Tab => ({
-  id: from?.id ?? crypto.randomUUID(),
-  path: doc.path,
-  untitled: 0,
-  mode: from ? modeOf(from) : "wysiwyg",
-  scroll: from?.scroll ?? 0,
-  text: doc.text,
-  saved: doc.text,
-  meta: doc.meta,
-  missing: false,
-  changed: false,
-  notice: null,
-});
+const fileTab = (doc: FileDoc, from?: TabState): Tab => {
+  const large = doc.text.length > MAX_WYSIWYG;
+  return {
+    id: from?.id ?? crypto.randomUUID(),
+    path: doc.path,
+    untitled: 0,
+    mode: large ? "markdown" : from ? modeOf(from) : "wysiwyg",
+    scroll: from?.scroll ?? 0,
+    text: doc.text,
+    saved: doc.text,
+    meta: doc.meta,
+    missing: false,
+    changed: false,
+    notice: large ? t("This file is large, so it opens as markdown.") : null,
+  };
+};
 
 /** `docs`: null = the file is gone, no entry = it couldn't be read now (offline drive, locked), so the tab stays. */
 export function restoreTabs(session: Session, drafts: Record<string, string>, docs: Record<string, FileDoc | null>): State {

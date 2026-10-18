@@ -34,9 +34,9 @@ type Props = {
   update: ReactNode;
 };
 
-/** Big documents re-render the preview after a pause in typing instead of on every key. */
+/** Big documents render the preview after the editor shows and then after a pause in typing, not on every key. */
 function usePreview(text: string) {
-  const [preview, setPreview] = useState(text);
+  const [preview, setPreview] = useState(text.length < 100_000 ? text : "");
   useEffect(() => {
     if (text.length < 100_000) return setPreview(text);
     const timer = setTimeout(() => setPreview(text), 150);
@@ -114,7 +114,14 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onReload, fin
       )}
       {tab.mode === "markdown" ? (
         <div className="flex min-h-0 flex-1">
-          <Suspense fallback={<div className="flex-1 border-r border-line" />}>
+          <Suspense
+            fallback={
+              // the text shows while CodeMirror loads for the first time; the start of it fills the screen anyway
+              <pre className="min-w-0 flex-1 overflow-hidden border-r border-line px-[18px] py-3 font-mono text-[13px] leading-[1.6] whitespace-pre-wrap">
+                {tab.text.slice(0, 20_000)}
+              </pre>
+            }
+          >
             <Editor
               key={tab.id}
               text={tab.text}

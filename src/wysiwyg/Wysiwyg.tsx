@@ -66,14 +66,6 @@ export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, 
         editor.current = e;
         handleRef.current = e.handle;
         setReady(true);
-        const hash = takeHash();
-        requestAnimationFrame(() => {
-          // after the render that shows the editor (a hidden element can't take focus), before restoring the scroll
-          e.view.focus();
-          const target = hash && e.dom.querySelector(`[id="${CSS.escape(decodeURIComponent(hash))}"]`);
-          if (target) target.scrollIntoView();
-          else if (boxRef.current) boxRef.current.scrollTop = tab.scroll;
-        });
       });
     });
     const selection = () => editor.current?.view.hasFocus() && props.current.onUpdate();
@@ -86,6 +78,17 @@ export default function Wysiwyg({ tab, handleRef, boxRef, onChange, onOpenLink, 
       editor.current = null;
     };
   }, []);
+
+  // once the editor is shown (a hidden element can't take focus): focus it, then restore the scroll or jump to an anchor
+  useEffect(() => {
+    const e = editor.current;
+    if (!ready || !e) return;
+    e.view.focus();
+    const hash = takeHash();
+    const target = hash && e.dom.querySelector(`[id="${CSS.escape(decodeURIComponent(hash))}"]`);
+    if (target) target.scrollIntoView();
+    else if (boxRef.current) boxRef.current.scrollTop = tab.scroll;
+  }, [ready]);
 
   useEffect(() => {
     if (!editor.current || tab.text === own.current) return;
