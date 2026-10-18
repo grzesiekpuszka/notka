@@ -3,23 +3,33 @@
 import { lift, setBlockType } from "@milkdown/kit/prose/commands";
 import { NodeRange, type Node } from "@milkdown/kit/prose/model";
 import { liftListItem, wrapInList } from "@milkdown/kit/prose/schema-list";
-import { Selection, type EditorState } from "@milkdown/kit/prose/state";
+import { Selection, TextSelection, type EditorState } from "@milkdown/kit/prose/state";
 import { findWrapping } from "@milkdown/kit/prose/transform";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import type { Format } from "../format";
 
 export type ListKind = "bullet" | "ordered" | "task";
 
-/** The innermost list around the cursor. */
+const isList = (node: Node) => node.type.name === "bullet_list" || node.type.name === "ordered_list";
+const kindOf = (list: Node): ListKind => (list.type.name === "ordered_list" ? "ordered" : list.firstChild?.attrs.checked != null ? "task" : "bullet");
+
+/**
+ * The innermost list around the selection; a selection that starts at the list level or above (a whole item, Ctrl+A,
+ * a triple click) means the first list inside it.
+ */
 function listAt(state: EditorState) {
-  const { $from } = state.selection;
-  for (let d = $from.depth - 1; d > 0; d--) {
+  const { $from, from, to } = state.selection;
+  for (let d = $from.depth; d > 0; d--) {
     const node = $from.node(d);
-    if (node.type.name !== "bullet_list" && node.type.name !== "ordered_list") continue;
-    const kind: ListKind = node.type.name === "ordered_list" ? "ordered" : $from.node(d + 1).attrs.checked != null ? "task" : "bullet";
-    return { pos: $from.before(d), node, kind };
+    if (isList(node)) return { pos: $from.before(d), node, kind: kindOf(node) };
   }
-  return null;
+  let found: { pos: number; node: Node; kind: ListKind } | null = null;
+  state.doc.nodesBetween(from, to, (node, pos) => {
+    if (found) return false;
+    if (isList(node)) found = { pos, node, kind: kindOf(node) };
+    return !found;
+  });
+  return found as { pos: number; node: Node; kind: ListKind } | null;
 }
 
 const within = (state: EditorState, name: string) => {
@@ -50,6 +60,9 @@ export function toggleList(view: EditorView, kind: ListKind) {
   const { nodes } = view.state.schema;
   const list = listAt(view.state);
   if (list?.kind === kind) {
+    if (run(view, liftListItem(nodes.list_item))) return;
+    // the selection isn't inside the list's items (Ctrl+A): take the whole list out
+    view.dispatch(view.state.tr.setSelection(TextSelection.between(view.state.doc.resolve(list.pos + 1), view.state.doc.resolve(list.pos + list.node.nodeSize - 1))));
     run(view, liftListItem(nodes.list_item));
     return;
   }

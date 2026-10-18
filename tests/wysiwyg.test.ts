@@ -260,3 +260,31 @@ test("quote on a list item quotes the list", async () => {
 test("quote in a table quotes the table", async () => {
   expect((await apply("| word | b |\n| - | - |\n| 1 | 2 |\n", "quote")).md).toMatch(/^> \| word/);
 });
+
+/** Runs a toolbar format with a selection that starts at the list level or above. */
+async function withSelection(md: string, f: import("../src/format").Format, pick: (doc: import("@milkdown/kit/prose/model").Node) => import("@milkdown/kit/prose/state").Selection) {
+  const { editor, onChange } = await make(md);
+  const view = editor.view;
+  view.dispatch(view.state.tr.setSelection(pick(view.state.doc)));
+  editor.handle.run(f);
+  const out = onChange.mock.lastCall?.[0] ?? "(no change)";
+  editor.destroy();
+  return out as string;
+}
+
+const { AllSelection, NodeSelection } = await import("@milkdown/kit/prose/state");
+
+test.each([
+  ["ordered", "1. one\n2. two\n"],
+  ["task", "- [ ] one\n- [ ] two\n"],
+] as const)("with everything selected, %s converts the list", async (f, expected) => {
+  expect(await withSelection("- one\n- two\n", f, (doc) => new AllSelection(doc))).toBe(expected);
+});
+
+test("with a whole item selected, numbered converts the list", async () => {
+  expect(await withSelection("- one\n- two\n", "ordered", (doc) => NodeSelection.create(doc, 1))).toBe("1. one\n2. two\n");
+});
+
+test("with everything selected, the active list kind switches the list off", async () => {
+  expect(await withSelection("- one\n- two\n", "bullet", (doc) => new AllSelection(doc))).toBe("one\n\ntwo\n");
+});
