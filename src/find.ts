@@ -1,3 +1,6 @@
+// far more than anyone steps through; also a limit of Highlight's constructor arguments
+export const MAX_MATCHES = 10_000;
+
 /** Case-insensitive matches of `query` in the text of `root`; a match never spans two text nodes. */
 export function findRanges(root: Node, query: string): Range[] {
   if (!query) return [];
@@ -11,6 +14,7 @@ export function findRanges(root: Node, query: string): Range[] {
       r.setStart(node, i);
       r.setEnd(node, i + q.length);
       ranges.push(r);
+      if (ranges.length === MAX_MATCHES) return ranges;
     }
   }
   return ranges;

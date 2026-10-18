@@ -8,7 +8,7 @@ export type Action =
   | { type: "close"; id: string }
   | { type: "restore"; doc: FileDoc | null }
   | { type: "edit"; id: string; text: string }
-  | { type: "saved"; id: string; path: string; meta: DocMeta }
+  | { type: "saved"; id: string; path: string; meta: DocMeta; text: string }
   | { type: "activate"; id: string }
   | { type: "cycle"; step: 1 | -1 }
   | { type: "toggleEdit"; id: string }
@@ -44,6 +44,7 @@ const fileTab = (doc: FileDoc, from?: TabState): Tab => ({
   changed: false,
 });
 
+/** `docs`: null = the file is gone, no entry = it couldn't be read now (offline drive, locked), so the tab stays. */
 export function restoreTabs(session: Session, drafts: Record<string, string>, docs: Record<string, FileDoc | null>): State {
   const tabs: Tab[] = [];
   for (const t of session.tabs) {
@@ -51,7 +52,7 @@ export function restoreTabs(session: Session, drafts: Record<string, string>, do
     const doc = t.path ? docs[t.path] : null;
     if (doc) tabs.push({ ...fileTab(doc, t), text: draft ?? doc.text });
     // a deleted file is kept only if it has unsaved text to rescue
-    else if (draft !== undefined || !t.path) tabs.push({ ...state(t), text: draft ?? "", saved: "", meta: emptyMeta, missing: !!t.path, changed: false });
+    else if (draft !== undefined || !t.path || docs[t.path] === undefined) tabs.push({ ...state(t), text: draft ?? "", saved: "", meta: emptyMeta, missing: !!t.path, changed: false });
   }
   const active = tabs.some((t) => t.id === session.active) ? session.active : (tabs[0]?.id ?? null);
   return { tabs, active, closed: session.closed, collapsed: session.collapsed };
@@ -93,10 +94,9 @@ export function reducer(s: State, a: Action): State {
     }
     case "edit":
       return patch(s, a.id, { text: a.text });
-    case "saved": {
-      const tab = s.tabs.find((t) => t.id === a.id);
-      return patch(s, tab?.id, { path: a.path, meta: a.meta, untitled: 0, saved: tab?.text, missing: false, changed: false });
-    }
+    case "saved":
+      // keys typed while the file was being written stay unsaved
+      return patch(s, a.id, { path: a.path, meta: a.meta, untitled: 0, saved: a.text, missing: false, changed: false });
     case "activate":
       return { ...s, active: a.id };
     case "cycle": {

@@ -1,25 +1,28 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, screen, shell, type Rectangle } from "electron";
 import path from "node:path";
 import type { DocMeta, Session, Startup, Theme } from "../src/api";
-import { argPaths } from "./args";
+import { argPaths, Inbox } from "./args";
 import { setDefaultApp } from "./assoc";
 import { readDoc, writeDoc } from "./files";
 import { serveImages } from "./images";
 import { dropDraft, loadSession, loadSettings, saveDraft, saveSession, saveSettings } from "./session";
 import { applyUpdate, afterUpdate, checkUpdates, downloadUpdate, scheduleChecks, updateState } from "./updates";
-import { DATA, emit, errorText } from "./util";
+import { DATA, emit, errorText, p } from "./util";
 import { watchFiles } from "./watch";
 import { setLang, t, type Lang } from "../src/i18n";
 
+// portable: Chromium's caches stay next to the exe too, and each copy of the app has its own single-instance lock
+app.setPath("userData", p("electron"));
 // a second launch only hands its arguments to the running instance (see "second-instance") and exits at once
 if (!app.requestSingleInstanceLock()) app.exit(0);
 
 let win: BrowserWindow | undefined;
 let updated: Startup["updated"] = null;
-const lang: Lang = app.getLocale().startsWith("pl") ? "pl" : "en";
-setLang(lang);
+let lang: Lang = "en";
 // the exe, plus the app path when run through electron.exe in dev
 const SKIP = app.isPackaged ? 1 : 2;
+const inbox = new Inbox((paths) => emit("open", paths));
+inbox.add(argPaths(process.argv, process.cwd(), SKIP));
 
 /** Only web links leave the app; file:, ms-settings: and other schemes could start programs. */
 function openLink(url: string) {
@@ -30,13 +33,13 @@ function openLink(url: string) {
 const handlers: Record<string, (args: any) => unknown> = {
   startup: (): Startup => ({
     ...loadSession(DATA),
-    open: argPaths(process.argv, process.cwd(), SKIP),
     theme: loadSettings(DATA).theme,
     lang,
     version: app.getVersion(),
     updated,
     update: updateState(),
   }),
+  take_open: () => inbox.take(),
   open_external: ({ url }: { url: string }) => openLink(url),
   save_session: (s: Session) => saveSession(DATA, s),
   save_draft: ({ id, text }: { id: string; text: string }) => saveDraft(DATA, id, text),
@@ -125,13 +128,15 @@ function createWindow() {
 app.on("window-all-closed", () => app.quit());
 
 app.on("second-instance", (_e, argv, cwd) => {
-  if (!win) return;
+  inbox.add(argPaths(argv, cwd, SKIP));
+  if (!win || win.isDestroyed()) return;
   if (win.isMinimized()) win.restore();
   win.focus();
-  emit("open", argPaths(argv, cwd, SKIP));
 });
 
 app.whenReady().then(() => {
+  lang = app.getLocale().startsWith("pl") ? "pl" : "en";
+  setLang(lang);
   // the default menu's accelerators (Ctrl+W closes the window, Ctrl+R reloads) would beat the app's shortcuts
   Menu.setApplicationMenu(null);
   updated = afterUpdate();

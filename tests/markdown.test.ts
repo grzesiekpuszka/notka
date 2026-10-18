@@ -25,3 +25,9 @@ test("keeps remote image", () => {
 test("adds heading ids", () => {
   expect(render("## Set up", null)).toContain('id="set-up"');
 });
+
+test("documents can't restyle the app", () => {
+  const html = render('<style>body{display:none}</style><div style="position:fixed;inset:0">x</div>', null);
+  expect(html).not.toContain("<style");
+  expect(html).not.toContain("position:fixed");
+});

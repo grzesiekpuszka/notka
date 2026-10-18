@@ -90,7 +90,7 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onSave, onRel
         </div>
       )}
       {tab.missing && (
-        <div className="shrink-0 border-b border-line bg-surface-2 px-4 py-2.5 text-muted">{t("The file was deleted or moved. Save it to keep it.")}</div>
+        <div className="shrink-0 border-b border-line bg-surface-2 px-4 py-2.5 text-muted">{t("The file can't be found or read. Save it to keep it.")}</div>
       )}
       {tab.editing ? (
         <>

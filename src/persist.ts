@@ -9,6 +9,8 @@ import { dirty, toSession, type State } from "./tabs";
 export function usePersistence(state: State, ready: boolean) {
   const current = useRef(state);
   current.current = state;
+  const started = useRef(ready);
+  started.current = ready;
   // text of each draft as last written; a tab is in here exactly while it has a draft file
   const drafts = useRef(new Map<string, string>());
   const timers = useRef(new Map<string, number>());
@@ -45,6 +47,8 @@ export function usePersistence(state: State, ready: boolean) {
   useEffect(
     () =>
       on("flush", async () => {
+        // before the session is loaded the state is empty: saving it would wipe the session and, on the next start, its drafts
+        if (!started.current) return invoke("flushed");
         const s = current.current;
         const pending = s.tabs.filter((t) => timers.current.has(t.id));
         for (const t of pending) clearTimeout(timers.current.get(t.id));

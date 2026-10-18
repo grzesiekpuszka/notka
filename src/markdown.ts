@@ -17,6 +17,9 @@ marked.use(gfmHeadingId(), {
 export function render(text: string, docDir: string | null): string {
   dir = docDir;
   return DOMPurify.sanitize(marked.parse(text, { async: false }), {
+    // a document must not be able to restyle or cover the app
+    FORBID_TAGS: ["style"],
+    FORBID_ATTR: ["style"],
     ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|mdimg):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
   });
 }

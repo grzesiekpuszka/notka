@@ -11,7 +11,6 @@ export type UpdateState = { current: string; available: { version: string; notes
 export type Startup = {
   session: Session;
   drafts: Record<string, string>;
-  open: string[];
   theme: Theme;
   lang: Lang;
   version: string;

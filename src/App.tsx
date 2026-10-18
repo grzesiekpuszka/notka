@@ -50,11 +50,14 @@ export default function App() {
       setUpdate(s.update);
       if (s.updated) setToast(s.updated === "ok" ? t("Updated to {version}.", { version: s.version }) : t("The update couldn't be installed; the previous version was restored."));
       const paths = s.session.tabs.flatMap((t) => (t.path ? [t.path] : []));
-      const docs = await Promise.all(paths.map((path) => invoke<FileDoc | null>("read_file", { path }).catch(() => null)));
+      // a file that can't be read in time (offline drive, cloud placeholder) keeps its tab without holding up the rest
+      const read = (path: string) =>
+        Promise.race([invoke<FileDoc | null>("read_file", { path }), new Promise<undefined>((r) => setTimeout(r, 3000))]).catch(() => undefined);
+      const docs = await Promise.all(paths.map(read));
       loadedDrafts(s.drafts);
-      dispatch({ type: "init", state: restoreTabs(s.session, s.drafts, Object.fromEntries(paths.map((p, i) => [p, docs[i]]))) });
-      await openPaths(s.open);
+      dispatch({ type: "init", state: restoreTabs(s.session, s.drafts, Object.fromEntries(paths.flatMap((p, i) => (docs[i] === undefined ? [] : [[p, docs[i]]])))) });
       setReady(true);
+      await openPaths(await invoke<string[]>("take_open"));
     });
     const offs = [on("open", openPaths), on("file_changed", (doc: FileDoc) => dispatch({ type: "disk", doc })), on("file_missing", (path: string) => dispatch({ type: "missing", path })),
       on("update", setUpdate),
@@ -95,7 +98,7 @@ export default function App() {
       path = await invoke<string | null>("save_as", { text: tab.text, meta, name: tab.path ?? `${tabName(tab)}.md` });
       if (!path) return false;
     } else await invoke("write_file", { path, text: tab.text, meta });
-    dispatch({ type: "saved", id: tab.id, path, meta });
+    dispatch({ type: "saved", id: tab.id, path, meta, text: tab.text });
     return true;
   };
 

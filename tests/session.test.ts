@@ -36,3 +36,10 @@ test("corrupt session.json gives empty session", () => {
   fs.writeFileSync(path.join(dir, "session.json"), "{oops");
   expect(loadSession(dir).session).toEqual({ tabs: [], active: null, closed: [], collapsed: false });
 });
+
+test("keeps drafts when session.json can't be parsed", () => {
+  saveDraft(dir, "b", "precious");
+  fs.writeFileSync(path.join(dir, "session.json"), "\0\0\0");
+  loadSession(dir);
+  expect(fs.readFileSync(path.join(dir, "drafts", "b.txt"), "utf8")).toBe("precious");
+});

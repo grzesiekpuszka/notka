@@ -100,7 +100,7 @@ test("reload replaces mine", () => {
 test("saved clears dirty and turns untitled into file", () => {
   let s = run({ type: "new" });
   s = reducer(s, { type: "edit", id: s.active!, text: "hi" });
-  s = reducer(s, { type: "saved", id: s.active!, path: "C:\\n.md", meta });
+  s = reducer(s, { type: "saved", id: s.active!, path: "C:\\n.md", meta, text: "hi" });
   expect(s.tabs[0]).toMatchObject({ path: "C:\\n.md", untitled: 0, saved: "hi" });
   expect(dirty(s.tabs[0])).toBe(false);
 });
@@ -129,4 +129,20 @@ test("restoreTabs", () => {
   expect(s.tabs[3]).toMatchObject({ text: "draft", saved: "" });
   expect(s.active).toBe("1");
   expect(s.collapsed).toBe(true);
+});
+
+test("saved marks the written text, not keys typed during the save", () => {
+  let s = run({ type: "open", doc: doc("A", "x") });
+  s = reducer(s, { type: "edit", id: s.active!, text: "written" });
+  s = reducer(s, { type: "edit", id: s.active!, text: "written and more" });
+  s = reducer(s, { type: "saved", id: s.active!, path: "A", meta, text: "written" });
+  expect(dirty(s.tabs[0])).toBe(true);
+  expect(reducer(s, { type: "disk", doc: doc("A", "written") })).toBe(s);
+});
+
+test("restoreTabs keeps a tab whose file can't be read now", () => {
+  const session: Session = { tabs: [{ id: "1", path: "N:/x.md", untitled: 0, editing: false, scroll: 0 }], active: "1", closed: [], collapsed: false };
+  const s = restoreTabs(session, {}, {});
+  expect(s.tabs).toHaveLength(1);
+  expect(s.tabs[0].missing).toBe(true);
 });

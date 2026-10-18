@@ -66,5 +66,5 @@ const pl: Record<string, string> = {
   "The downloaded update is damaged (checksum mismatch). Try again.": "Pobrana aktualizacja jest uszkodzona (niezgodna suma kontrolna). Spróbuj ponownie.",
   "The update package is invalid": "Paczka aktualizacji jest nieprawidłowa",
   "Download the update first": "Najpierw pobierz aktualizację",
-  "The file was deleted or moved. Save it to keep it.": "Plik został usunięty lub przeniesiony. Zapisz go, żeby go zachować.",
+  "The file can't be found or read. Save it to keep it.": "Nie można znaleźć ani odczytać pliku. Zapisz go, żeby go zachować.",
 };
