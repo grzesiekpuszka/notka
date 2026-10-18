@@ -6,9 +6,9 @@ import DocView from "./DocView";
 import Menu from "./Menu";
 import { usePersistence } from "./persist";
 import { setLang, t } from "./i18n";
-import Sidebar, { tabName } from "./Sidebar";
+import TabBar, { tabName } from "./TabBar";
 import { dirty, reducer, restoreTabs, type State, type Tab } from "./tabs";
-import { Button, IconButton } from "./ui";
+import { IconButton } from "./ui";
 
 const empty: State = { tabs: [], active: null, closed: [] };
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -117,7 +117,6 @@ export default function App() {
     invoke("set_theme", { theme }).catch(() => {});
   };
   const fail = (err: any) => confirm(t("Something went wrong"), String(err?.message ?? err), [t("OK")]);
-  const [, themeLabel, ThemeIcon] = themes.find(([x]) => x === theme)!;
 
   useEffect(() => {
     if (!toast) return;
@@ -173,56 +172,56 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // the toolbar (Task 3) takes over this row; for now it carries the update button and the menu
+  const updateButton = update?.available && (
+    <IconButton
+      icon={Download}
+      label={installing === null ? t("Install version {version} and restart", { version: update.available.version }) : t("Downloading… {n}%", { n: installing })}
+      disabled={installing !== null}
+      onClick={install}
+      className="bg-accent-soft text-accent hover:bg-accent-soft hover:text-accent-hover dark:hover:bg-accent-soft"
+    />
+  );
+  const menu = (
+    <Menu
+      items={[
+        { label: t("New document"), icon: FilePlus, onClick: newDoc },
+        { label: t("Open…"), icon: FolderOpen, onClick: () => openDialog().catch(fail) },
+        "-",
+        { heading: t("Theme") },
+        ...themes.map(([value, label, icon]) => ({ label: t(label), icon, checked: theme === value, onClick: () => pickTheme(value) })),
+        "-",
+        { label: t("Set as default for .md"), icon: FileType, onClick: () => invoke("set_default_app").catch(fail) },
+        { label: t("Check for updates"), icon: RefreshCw, onClick: () => checkUpdates().catch(fail) },
+      ]}
+      footer={`Simple Markdown Reader ${version}`}
+    />
+  );
+
   return (
     <div
-      className="flex h-full"
+      className="flex h-full flex-col"
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
         openPaths([...e.dataTransfer.files].map((f) => window.smr.pathFor(f)).filter(Boolean));
       }}
     >
-      <Sidebar
-        state={state}
-        onActivate={(id) => dispatch({ type: "activate", id })}
-        onClose={close}
-        onNew={newDoc}
-        onCollapse={() => {}}
-        notice={
-          update?.available && (
-            <div className="mb-1.5 rounded-lg bg-accent-soft p-2.5 text-[13px]">
-              <div className="mb-2">{t("Version {version} is available.", { version: update.available.version })}</div>
-              <Button variant="primary" icon={Download} disabled={installing !== null} onClick={install} className="h-7 w-full">
-                {installing === null ? t("Install and restart") : t("Downloading… {n}%", { n: installing })}
-              </Button>
-            </div>
-          )
-        }
-        footer={
-          <>
-            <IconButton
-              icon={ThemeIcon}
-              label={t("Theme: {theme}", { theme: t(themeLabel) })}
-              onClick={() => pickTheme(themes[(themes.findIndex(([x]) => x === theme) + 1) % themes.length][0])}
-            />
-            <Menu
-              items={[
-                { label: t("New document"), icon: FilePlus, onClick: newDoc },
-                { label: t("Open…"), icon: FolderOpen, onClick: () => openDialog().catch(fail) },
-                "-",
-                { heading: t("Theme") },
-                ...themes.map(([value, label, icon]) => ({ label: t(label), icon, checked: theme === value, onClick: () => pickTheme(value) })),
-                "-",
-                { label: t("Set as default for .md"), icon: FileType, onClick: () => invoke("set_default_app").catch(fail) },
-                { label: t("Check for updates"), icon: RefreshCw, onClick: () => checkUpdates().catch(fail) },
-              ]}
-              footer={`Simple Markdown Reader ${version}`}
-            />
-          </>
-        }
-      />
-      <main className="my-2 mr-2 min-w-0 flex-1 overflow-hidden rounded-2xl border border-line bg-surface">
-        {tab ? (
+      {ready && (
+        <TabBar
+          state={state}
+          onActivate={(id) => dispatch({ type: "activate", id })}
+          onClose={close}
+          onNew={newDoc}
+          onMove={(id, to) => dispatch({ type: "move", id, to })}
+        />
+      )}
+      <div className="flex h-11 shrink-0 items-center justify-end gap-1 border-b border-line bg-surface px-2">
+        {updateButton}
+        {menu}
+      </div>
+      <main className="min-h-0 flex-1 bg-surface">
+        {tab && (
           <DocView
             key={tab.id}
             tab={tab}
@@ -244,20 +243,6 @@ export default function App() {
               return h;
             }}
           />
-        ) : (
-          ready && (
-            <div className="flex h-full flex-col items-center justify-center gap-4 text-muted">
-              <p>{t("Open a file (Ctrl+O) or create a new one (Ctrl+N)")}</p>
-              <div className="flex gap-2">
-                <Button icon={FolderOpen} onClick={openDialog}>
-                  {t("Open…")}
-                </Button>
-                <Button icon={FilePlus} onClick={newDoc}>
-                  {t("New")}
-                </Button>
-              </div>
-            </div>
-          )
         )}
       </main>
       <DialogHost />

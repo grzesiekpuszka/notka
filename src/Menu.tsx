@@ -4,7 +4,7 @@ import { cx, IconButton } from "./ui";
 
 export type Item = { label: string; icon?: LucideIcon; checked?: boolean; onClick(): void } | "-" | { heading: string };
 
-/** The "…" menu at the bottom of the sidebar; it opens upwards. */
+/** The "…" menu at the right end of the toolbar. */
 export default function Menu({ items, footer }: { items: Item[]; footer?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -25,7 +25,7 @@ export default function Menu({ items, footer }: { items: Item[]; footer?: ReactN
     <div ref={box} className="relative">
       <IconButton icon={Ellipsis} label="Menu" onClick={() => setOpen(!open)} />
       {open && (
-        <div className="absolute bottom-full left-0 z-20 mb-1 w-64 rounded-xl border border-line bg-surface p-1 shadow-xl">
+        <div className="absolute top-full right-0 z-20 mt-1 w-64 rounded-xl border border-line bg-surface p-1 shadow-xl">
           {items.map((item, i) =>
             item === "-" ? (
               <div key={i} className="my-1 border-t border-line" />

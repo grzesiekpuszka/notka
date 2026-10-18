@@ -86,6 +86,10 @@ ipcMain.handle("invoke", async (e, cmd: string, args: unknown) => {
 const visible = (b: Rectangle) =>
   screen.getAllDisplays().some(({ workArea: a }) => b.x < a.x + a.width - 100 && b.x + b.width > a.x + 100 && b.y >= a.y - 10 && b.y < a.y + a.height - 50);
 
+// the title bar row is drawn by the page (tabs); Windows draws its buttons on top in these colors
+const overlay = () =>
+  nativeTheme.shouldUseDarkColors ? { color: "#1b1b1d", symbolColor: "#f4f4f5", height: 40 } : { color: "#f7f7f8", symbolColor: "#1c1c1f", height: 40 };
+
 function createWindow() {
   const { bounds, maximized, theme } = loadSettings(DATA);
   nativeTheme.themeSource = theme;
@@ -97,8 +101,9 @@ function createWindow() {
     minHeight: 420,
     title: "Simple Markdown Reader",
     show: false,
-    backgroundColor: nativeTheme.shouldUseDarkColors ? "#202020" : "#f3f3f3",
-    autoHideMenuBar: true,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#1b1b1d" : "#f7f7f8",
+    titleBarStyle: "hidden",
+    titleBarOverlay: overlay(),
     webPreferences: { preload: path.join(__dirname, "preload.cjs"), sandbox: true, contextIsolation: true, nodeIntegration: false },
   });
   win.once("ready-to-show", () => {
@@ -126,6 +131,8 @@ function createWindow() {
 }
 
 app.on("window-all-closed", () => app.quit());
+
+nativeTheme.on("updated", () => win && !win.isDestroyed() && win.setTitleBarOverlay(overlay()));
 
 app.on("second-instance", (_e, argv, cwd) => {
   inbox.add(argPaths(argv, cwd, SKIP));

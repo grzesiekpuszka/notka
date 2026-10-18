@@ -5,7 +5,7 @@ import { t } from "./i18n";
 import FindBar from "./FindBar";
 import { dirname } from "./paths";
 import Reader from "./Reader";
-import { tabName } from "./Sidebar";
+import { tabName } from "./TabBar";
 import type { Action, Tab } from "./tabs";
 import { Button } from "./ui";
 
