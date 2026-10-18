@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electro
 import path from "node:path";
 import type { DocMeta } from "../src/api";
 import { readDoc, writeDoc } from "./files";
+import { serveImages } from "./images";
 import { errorText } from "./util";
 import { t } from "../src/i18n";
 
@@ -74,4 +75,7 @@ function createWindow() {
 
 app.on("window-all-closed", () => app.quit());
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  serveImages();
+  createWindow();
+});
