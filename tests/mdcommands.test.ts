@@ -49,7 +49,7 @@ test("codeblock fences the selected lines", () => {
 });
 
 test("hr and table go on their own lines", () => {
-  expect(format("ab", [1, 1], "hr").text).toBe("a\n\n---\n\nb");
+  expect(format("ab\nc", [1, 1], "hr").text).toBe("ab\n\n---\n\nc");
   expect(format("", [0, 0], "table").text).toBe("| Column 1 | Column 2 | Column 3 |\n| --- | --- | --- |\n|  |  |  |\n|  |  |  |\n");
 });
 
@@ -59,4 +59,12 @@ test("blocks go after a selection instead of replacing it", () => {
 
 test("link with no selection uses the address as its text", () => {
   expect(format("a ", [2, 2], "link", "https://x").text).toBe("a [https://x](https://x)");
+});
+
+test("a rule goes after the current line, not inside it", () => {
+  expect(format("word", [2, 2], "hr").text).toBe("word\n\n---\n");
+});
+
+test("code block toggles off", () => {
+  expect(format("```\nx\n```", [4, 5], "codeblock").text).toBe("x");
 });

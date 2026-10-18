@@ -202,3 +202,61 @@ test("typing is serialized after a pause, flush gives the text at once", async (
   expect(editor.flush()).toBeNull();
   editor.destroy();
 });
+
+/** Puts the cursor inside the first "word" (or at offset) and runs a toolbar format. */
+async function apply(md: string, f: import("../src/format").Format, offset = 1) {
+  const { editor, onChange } = await make(md);
+  const view = editor.view;
+  let at = -1;
+  view.state.doc.descendants((n, pos) => {
+    if (at < 0 && n.isText && n.text!.includes("word")) at = pos + n.text!.indexOf("word");
+  });
+  view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, at + offset)));
+  editor.handle.run(f);
+  const active = editor.handle.active();
+  const out = onChange.mock.lastCall?.[0] ?? editor.getMarkdown();
+  editor.destroy();
+  return { md: out as string, active };
+}
+
+const blocks: [string, string, import("../src/format").Format, string][] = [
+  ["quote toggles off", "> word\n", "quote", "word\n"],
+  ["bullet becomes numbered", "- word\n- two\n", "ordered", "1. word\n2. two\n"],
+  ["numbered becomes bullet", "1. word\n2. two\n", "bullet", "- word\n- two\n"],
+  ["bullet toggles off for the item", "- word\n- two\n", "bullet", "word\n\n- two\n"],
+  ["numbered toggles off for the item", "1. word\n2. two\n", "ordered", "word\n\n1. two\n"],
+  ["tasks toggle off for the item", "- [ ] word\n- [x] two\n", "task", "word\n\n- [x] two\n"],
+  ["bullet becomes tasks", "- word\n- two\n", "task", "- [ ] word\n- [ ] two\n"],
+  ["tasks become bullet", "- [ ] word\n- [x] two\n", "bullet", "- word\n- two\n"],
+  ["tasks become numbered", "- [ ] word\n- [x] two\n", "ordered", "1. word\n2. two\n"],
+  ["code block toggles off", "```\nword\n```\n", "codeblock", "word\n"],
+  ["heading becomes a list item", "## word\n", "bullet", "- word\n"],
+  ["code block becomes a list item", "```\nword\n```\n", "bullet", "- word\n"],
+  ["rule goes after the paragraph", "word\n", "hr", "word\n\n---\n"],
+  ["table inside a table goes after it", "| word | b |\n| - | - |\n| 1 | 2 |\n", "table", "| word | b |\n| ---- | - |\n| 1    | 2 |\n\n|    |    |    |\n| :- | :- | :- |\n|    |    |    |\n|    |    |    |\n"],
+];
+
+test.each(blocks)("%s", async (_, md, f, expected) => {
+  expect((await apply(md, f)).md).toBe(expected);
+});
+
+test.each([
+  ["- [ ] word\n", "task"],
+  ["1. word\n", "ordered"],
+  ["- word\n", "bullet"],
+  ["> word\n", "quote"],
+  ["```\nword\n```\n", "codeblock"],
+] as const)("active shows the block of %j", async (md, f) => {
+  const { editor } = await make(md);
+  select(editor.view, "word");
+  expect(editor.handle.active().has(f)).toBe(true);
+  editor.destroy();
+});
+
+test("quote on a list item quotes the list", async () => {
+  expect((await apply("- word\n- two\n", "quote")).md).toBe("> - word\n> - two\n");
+});
+
+test("quote in a table quotes the table", async () => {
+  expect((await apply("| word | b |\n| - | - |\n| 1 | 2 |\n", "quote")).md).toMatch(/^> \| word/);
+});

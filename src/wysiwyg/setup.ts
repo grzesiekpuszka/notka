@@ -4,10 +4,8 @@ import { clipboard } from "@milkdown/kit/plugin/clipboard";
 import { history } from "@milkdown/kit/plugin/history";
 import {
   commonmark,
-  createCodeBlockCommand,
   imageSchema,
   inlineCodeKeymap,
-  insertHrCommand,
   insertImageCommand,
   toggleEmphasisCommand,
   toggleInlineCodeCommand,
@@ -16,18 +14,16 @@ import {
   toggleStrongCommand,
   turnIntoTextCommand,
   updateLinkCommand,
-  wrapInBlockquoteCommand,
-  wrapInBulletListCommand,
   wrapInHeadingCommand,
-  wrapInOrderedListCommand,
 } from "@milkdown/kit/preset/commonmark";
-import { addRowAfterCommand, gfm, goToNextTableCellCommand, insertTableCommand, toggleStrikethroughCommand } from "@milkdown/kit/preset/gfm";
+import { addRowAfterCommand, createTable, gfm, goToNextTableCellCommand, toggleStrikethroughCommand } from "@milkdown/kit/preset/gfm";
 import type { Node } from "@milkdown/kit/prose/model";
-import { Plugin, TextSelection } from "@milkdown/kit/prose/state";
+import { Plugin } from "@milkdown/kit/prose/state";
 import type { EditorView } from "@milkdown/kit/prose/view";
 import { $prose, $view, callCommand, replaceAll } from "@milkdown/kit/utils";
 import type { EditorHandle, Format } from "../format";
 import { imageUrl, resolveLink } from "../paths";
+import { blockState, insertBlock, toggleCodeBlock, toggleList, toggleQuote } from "./blocks";
 import { frontmatter } from "./frontmatter";
 import { codeHighlight } from "./highlight";
 
@@ -182,13 +178,6 @@ export async function createEditor(o: WysiwygOptions): Promise<Wysiwyg> {
   const view = editor.ctx.get(editorViewCtx);
   serialize = (doc) => editor.ctx.get(serializerCtx)(doc);
   const command = (key: Parameters<typeof callCommand>[0], payload?: unknown) => editor.action(callCommand(key, payload));
-  // blocks go after the selection instead of replacing it
-  const collapse = () => view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, view.state.selection.to)));
-  const inList = () => {
-    const { $from } = view.state.selection;
-    for (let d = $from.depth; d > 0; d--) if ($from.node(d).type.name === "list_item") return $from.before(d);
-    return -1;
-  };
 
   const handle: EditorHandle = {
     run(f, arg) {
@@ -199,21 +188,12 @@ export async function createEditor(o: WysiwygOptions): Promise<Wysiwyg> {
       else if (f === "code") command(toggleInlineCodeCommand.key);
       else if (f === "p") command(turnIntoTextCommand.key);
       else if (f === "h1" || f === "h2" || f === "h3") command(wrapInHeadingCommand.key, Number(f[1]));
-      else if (f === "bullet") command(wrapInBulletListCommand.key);
-      else if (f === "ordered") command(wrapInOrderedListCommand.key);
-      else if (f === "quote") command(wrapInBlockquoteCommand.key);
-      else if (f === "codeblock") command(createCodeBlockCommand.key);
-      else if (f === "task") {
-        if (inList() < 0) command(wrapInBulletListCommand.key);
-        const pos = inList();
-        if (pos >= 0) view.dispatch(view.state.tr.setNodeAttribute(pos, "checked", false));
-      } else if (f === "hr") {
-        collapse();
-        command(insertHrCommand.key);
-      } else if (f === "table") {
-        collapse();
-        command(insertTableCommand.key, { row: 3, col: 3 });
-      } else if (f === "image") command(insertImageCommand.key, { src: arg, alt: "" });
+      else if (f === "bullet" || f === "ordered" || f === "task") toggleList(view, f);
+      else if (f === "quote") toggleQuote(view);
+      else if (f === "codeblock") toggleCodeBlock(view);
+      else if (f === "hr") insertBlock(view, view.state.schema.nodes.hr.create());
+      else if (f === "table") insertBlock(view, createTable(editor.ctx, 3, 3));
+      else if (f === "image") command(insertImageCommand.key, { src: arg, alt: "" });
       else if (f === "link") {
         if (view.state.selection.empty) {
           const { from } = view.state.selection;
@@ -231,6 +211,7 @@ export async function createEditor(o: WysiwygOptions): Promise<Wysiwyg> {
       for (const [f, name] of MARKS) if (marks.some((m) => m.type.name === name)) on.add(f);
       const parent = $from.parent;
       on.add(parent.type.name === "heading" ? (`h${parent.attrs.level}` as Format) : "p");
+      for (const b of blockState(view.state)) on.add(b);
       return on;
     },
     selectedText: () => view.state.doc.textBetween(view.state.selection.from, view.state.selection.to, "\n"),

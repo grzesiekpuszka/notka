@@ -28,10 +28,12 @@ function lines(text: string, [from, to]: [number, number], f: (line: string, i: 
   return { text: text.slice(0, start) + block + text.slice(end), sel: [start, start + block.length] };
 }
 
-/** Inserts a block (table, rule) on lines of its own, after the selection rather than over it. */
+/** Inserts a block (table, rule) on lines of its own, after the line the selection ends in. */
 function insertBlock(text: string, [, to]: [number, number], snippet: string): Edit {
-  const before = text.slice(0, to);
-  const after = text.slice(to);
+  const nl = text.indexOf("\n", to);
+  const end = nl < 0 ? text.length : nl;
+  const before = text.slice(0, end);
+  const after = text.slice(end);
   const pre = !before || before.endsWith("\n\n") ? "" : before.endsWith("\n") ? "\n" : "\n\n";
   const post = !after ? "\n" : after.startsWith("\n\n") ? "" : after.startsWith("\n") ? "\n" : "\n\n";
   const at = before.length + pre.length + snippet.length;
@@ -61,8 +63,18 @@ export function format(text: string, sel: [number, number], f: Format, arg = "")
       const s = `![](${arg.replace(/ /g, "%20")})`;
       return put(s, s.length);
     }
-    case "codeblock":
+    case "codeblock": {
+      // inside a fenced block: remove its fences
+      const start = text.lastIndexOf("\n", from - 1) + 1;
+      const nl = text.indexOf("\n", to);
+      const end = nl < 0 ? text.length : nl;
+      const open = text.lastIndexOf("\n", start - 2) + 1;
+      if (start > 0 && /^```/.test(text.slice(open, start - 1)) && text.slice(end + 1, end + 4) === "```" && !text.slice(end + 4).match(/^[^\n]/)) {
+        const inner = text.slice(start, end);
+        return { text: text.slice(0, open) + inner + text.slice(end + 4), sel: [open, open + inner.length] };
+      }
       return lines(text, sel, (l, i, all) => (i === 0 ? "```\n" : "") + l + (i === all.length - 1 ? "\n```" : ""));
+    }
     case "hr":
       return insertBlock(text, sel, "---");
     case "table":
