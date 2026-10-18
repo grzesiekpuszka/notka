@@ -1,7 +1,8 @@
 import { Check, Pencil, Save } from "lucide-react";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { Encoding } from "./api";
 import { t } from "./i18n";
+import FindBar from "./FindBar";
 import { dirname } from "./paths";
 import Reader from "./Reader";
 import { tabName } from "./Sidebar";
@@ -25,6 +26,9 @@ type Props = {
   takeHash(): string | null;
   onSave(): void;
   onReload(): void;
+  /** > 0 while the find bar is open; a new value focuses it again */
+  finding: number;
+  onFindClose(): void;
 };
 
 /** Big documents re-render the preview after a pause in typing instead of on every key. */
@@ -38,10 +42,12 @@ function usePreview(text: string) {
   return text.length < 100_000 ? text : preview;
 }
 
-export default function DocView({ tab, dispatch, onOpen, takeHash, onSave, onReload }: Props) {
+export default function DocView({ tab, dispatch, onOpen, takeHash, onSave, onReload, finding, onFindClose }: Props) {
   const [cursor, setCursor] = useState([1, 1]);
   const preview = useRef<HTMLDivElement>(null);
   const text = usePreview(tab.text);
+  const findRoot = useCallback(() => preview.current?.querySelector<HTMLElement>(".md") ?? null, []);
+  const find = finding > 0 && <FindBar root={findRoot} text={text} focus={finding} onClose={onFindClose} />;
   const reader = (
     <Reader
       key={tab.id}
@@ -101,7 +107,10 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onSave, onRel
                 }}
               />
             </Suspense>
-            <div className="min-w-0 flex-1">{reader}</div>
+            <div className="relative min-w-0 flex-1">
+              {find}
+              {reader}
+            </div>
           </div>
           <div className="flex h-6 shrink-0 items-center gap-4 border-t border-line px-3.5 text-[11px] text-muted">
             <span>{t("Ln {line}, Col {col}", { line: cursor[0], col: cursor[1] })}</span>
@@ -110,7 +119,10 @@ export default function DocView({ tab, dispatch, onOpen, takeHash, onSave, onRel
           </div>
         </>
       ) : (
-        <div className="min-h-0 flex-1">{reader}</div>
+        <div className="relative min-h-0 flex-1">
+          {find}
+          {reader}
+        </div>
       )}
     </div>
   );

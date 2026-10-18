@@ -166,3 +166,6 @@ code {
 .dark .hljs-title, .dark .hljs-section, .dark .hljs-name, .dark .hljs-selector-id, .dark .hljs-selector-class { color: #d2a8ff; }
 .dark .hljs-type, .dark .hljs-built_in, .dark .hljs-class .hljs-title { color: #ffa657; }
 .dark .hljs-deletion { color: #ffa198; }
+
+::highlight(find) { background-color: color-mix(in srgb, var(--c-warning) 35%, transparent); }
+::highlight(find-current) { background-color: var(--c-accent); color: var(--c-on-accent); }

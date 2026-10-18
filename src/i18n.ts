@@ -39,5 +39,10 @@ const pl: Record<string, string> = {
   "The file changed on disk.": "Plik zmienił się na dysku.",
   "Reload": "Przeładuj",
   "Keep mine": "Zachowaj moje",
+  "Find": "Znajdź",
+  "Previous (Shift+Enter)": "Poprzedni (Shift+Enter)",
+  "Next (Enter)": "Następny (Enter)",
+  "Close (Esc)": "Zamknij (Esc)",
+  "Something went wrong": "Coś poszło nie tak",
   "The file was deleted or moved. Save it to keep it.": "Plik został usunięty lub przeniesiony. Zapisz go, żeby go zachować.",
 };

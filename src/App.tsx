@@ -15,6 +15,8 @@ const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 export default function App() {
   const [state, dispatch] = useReducer(reducer, empty);
   const [ready, setReady] = useState(false);
+  const [finding, setFinding] = useState(0);
+  useEffect(() => setFinding(0), [state.active]);
   const hash = useRef<string | null>(null);
   const tab = state.tabs.find((x) => x.id === state.active);
   // async handlers (dialogs, saving) must see the state as it is when they continue, not when they started
@@ -89,6 +91,37 @@ export default function App() {
     dispatch({ type: "close", id });
   };
 
+  const restore = async () => {
+    const entry = current.current.closed[0];
+    if (!entry) return;
+    dispatch({ type: "restore", doc: await invoke<FileDoc | null>("read_file", { path: entry.path }).catch(() => null) });
+  };
+
+  const keys = useRef<(e: KeyboardEvent) => void>(null);
+  keys.current = (e) => {
+    // CodeMirror handles its own keys (Ctrl+F opens its search panel)
+    if (e.defaultPrevented || !e.ctrlKey || e.altKey || document.getElementById("root")!.inert) return;
+    const tab = current.current.tabs.find((x) => x.id === current.current.active);
+    const k = e.key.toLowerCase();
+    const run = (f: () => unknown) => {
+      e.preventDefault();
+      Promise.resolve(f()).catch((err) => confirm(t("Something went wrong"), String(err.message ?? err), [t("OK")]));
+    };
+    if (k === "n") run(newDoc);
+    else if (k === "o") run(openDialog);
+    else if (k === "s" && tab) run(() => save(tab, e.shiftKey));
+    else if (k === "w" && tab) run(() => close(tab.id));
+    else if (k === "t") run(restore);
+    else if (k === "tab") run(() => dispatch({ type: "cycle", step: e.shiftKey ? -1 : 1 }));
+    else if (k === "e" && tab) run(() => dispatch({ type: "toggleEdit", id: tab.id }));
+    else if (k === "f" && tab) run(() => setFinding((n) => n + 1));
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => keys.current!(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <div
       className="flex h-full"
@@ -116,6 +149,8 @@ export default function App() {
               const doc = await invoke<FileDoc | null>("read_file", { path: tab.path });
               dispatch(doc ? { type: "reload", doc } : { type: "missing", path: tab.path! });
             }}
+            finding={finding}
+            onFindClose={() => setFinding(0)}
             onSave={() => save(tab).catch((e) => confirm(t("Saving failed"), String(e.message ?? e), [t("OK")]))}
             onOpen={(path, h) => {
               hash.current = h || null;

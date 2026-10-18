@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, shell, type Rectangle } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, screen, shell, type Rectangle } from "electron";
 import path from "node:path";
 import type { DocMeta, Session, Startup } from "../src/api";
 import { argPaths } from "./args";
@@ -119,6 +119,8 @@ app.on("second-instance", (_e, argv, cwd) => {
 });
 
 app.whenReady().then(() => {
+  // the default menu's accelerators (Ctrl+W closes the window, Ctrl+R reloads) would beat the app's shortcuts
+  Menu.setApplicationMenu(null);
   serveImages();
   createWindow();
 });
