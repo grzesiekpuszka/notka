@@ -17,4 +17,13 @@ const pl: Record<string, string> = {
   "Only http and https links can be opened": "Można otwierać tylko linki http i https",
   "Unknown command: {cmd}": "Nieznane polecenie: {cmd}",
   "All files": "Wszystkie pliki",
+  "Untitled": "Bez tytułu",
+  "Expand sidebar": "Rozwiń panel boczny",
+  "Collapse sidebar": "Zwiń panel boczny",
+  "New document (Ctrl+N)": "Nowy dokument (Ctrl+N)",
+  "Close (Ctrl+W)": "Zamknij (Ctrl+W)",
+  "Edit": "Edytuj",
+  "Open a file (Ctrl+O) or create a new one (Ctrl+N)": "Otwórz plik (Ctrl+O) albo utwórz nowy (Ctrl+N)",
+  "Open…": "Otwórz…",
+  "New": "Nowy",
 };

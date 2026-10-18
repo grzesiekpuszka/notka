@@ -7,7 +7,7 @@ await server.listen();
 const url = server.resolvedUrls.local[0];
 
 execSync("pnpm build:main", { stdio: "inherit" });
-const electron = spawn("pnpm", ["exec", "electron", "."], {
+const electron = spawn("pnpm", ["exec", "electron", ".", ...process.argv.slice(2)], {
   stdio: "inherit",
   shell: true,
   env: { ...process.env, ELECTRON_RENDERER_URL: url },

@@ -1,15 +1,20 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from "electron";
 import path from "node:path";
-import type { DocMeta } from "../src/api";
+import type { DocMeta, Startup } from "../src/api";
+import { argPaths } from "./args";
 import { readDoc, writeDoc } from "./files";
 import { serveImages } from "./images";
-import { errorText } from "./util";
-import { t } from "../src/i18n";
+import { emit, errorText } from "./util";
+import { setLang, t, type Lang } from "../src/i18n";
 
 // a second launch only hands its arguments to the running instance (see "second-instance") and exits at once
 if (!app.requestSingleInstanceLock()) app.exit(0);
 
 let win: BrowserWindow | undefined;
+const lang: Lang = app.getLocale().startsWith("pl") ? "pl" : "en";
+setLang(lang);
+// the exe, plus the app path when run through electron.exe in dev
+const SKIP = app.isPackaged ? 1 : 2;
 
 /** Only web links leave the app; file:, ms-settings: and other schemes could start programs. */
 function openLink(url: string) {
@@ -18,6 +23,15 @@ function openLink(url: string) {
 }
 
 const handlers: Record<string, (args: any) => unknown> = {
+  startup: (): Startup => ({
+    session: { tabs: [], active: null, closed: [], collapsed: false },
+    drafts: {},
+    open: argPaths(process.argv, process.cwd(), SKIP),
+    theme: "system",
+    lang,
+    version: app.getVersion(),
+    updated: null,
+  }),
   open_external: ({ url }: { url: string }) => openLink(url),
   read_file: ({ path }: { path: string }) => readDoc(path),
   write_file: ({ path, text, meta }: { path: string; text: string; meta: DocMeta }) => writeDoc(path, text, meta),
@@ -74,6 +88,13 @@ function createWindow() {
 }
 
 app.on("window-all-closed", () => app.quit());
+
+app.on("second-instance", (_e, argv, cwd) => {
+  if (!win) return;
+  if (win.isMinimized()) win.restore();
+  win.focus();
+  emit("open", argPaths(argv, cwd, SKIP));
+});
 
 app.whenReady().then(() => {
   serveImages();
