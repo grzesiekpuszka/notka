@@ -62,6 +62,10 @@ const handlers: Record<string, (args: any) => unknown> = {
     await writeDoc(r.filePath, text, meta);
     return r.filePath;
   },
+  pick_image: async () => {
+    const r = await dialog.showOpenDialog(win!, { properties: ["openFile"], filters: [{ name: t("Images"), extensions: ["png", "jpg", "jpeg", "gif", "webp", "svg"] }] });
+    return r.canceled ? null : r.filePaths[0];
+  },
   open_dialog: async () => {
     const r = await dialog.showOpenDialog(win!, {
       properties: ["openFile", "multiSelections"],

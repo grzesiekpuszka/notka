@@ -172,7 +172,6 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // the toolbar (Task 3) takes over this row; for now it carries the update button and the menu
   const updateButton = update?.available && (
     <IconButton
       icon={Download}
@@ -216,10 +215,6 @@ export default function App() {
           onMove={(id, to) => dispatch({ type: "move", id, to })}
         />
       )}
-      <div className="flex h-11 shrink-0 items-center justify-end gap-1 border-b border-line bg-surface px-2">
-        {updateButton}
-        {menu}
-      </div>
       <main className="min-h-0 flex-1 bg-surface">
         {tab && (
           <DocView
@@ -232,7 +227,8 @@ export default function App() {
             }}
             finding={finding}
             onFindClose={() => setFinding(0)}
-            onSave={() => save(tab).catch((e) => confirm(t("Saving failed"), String(e.message ?? e), [t("OK")]))}
+            menu={menu}
+            update={updateButton}
             onOpen={(path, h) => {
               hash.current = h || null;
               openPaths([path]);

@@ -1,19 +1,37 @@
-// Loaded with React.lazy on the first Edit, so CodeMirror never slows down opening a document for reading.
+// The raw markdown editor, loaded with React.lazy the first time a tab switches to Markdown mode.
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Prec } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
+import type { EditorHandle, Format } from "./format";
+import { format } from "./mdcommands";
 
 type Props = {
   text: string;
   onChange(text: string): void;
   onCursor(line: number, col: number): void;
   onScroll(ratio: number): void;
+  onLink(): void;
+  handleRef: RefObject<EditorHandle | null>;
 };
+
+const HEADING = /^(#{1,3}) /;
+
+/** Applies a toolbar command as the smallest change, so undo steps stay small and the cursor stays put. */
+function apply(v: EditorView, f: Format, arg?: string) {
+  const old = v.state.doc.toString();
+  const { from, to } = v.state.selection.main;
+  const e = format(old, [from, to], f, arg);
+  let start = 0;
+  while (start < old.length && start < e.text.length && old[start] === e.text[start]) start++;
+  let end = 0;
+  while (end < old.length - start && end < e.text.length - start && old[old.length - 1 - end] === e.text[e.text.length - 1 - end]) end++;
+  v.dispatch({ changes: { from: start, to: old.length - end, insert: e.text.slice(start, e.text.length - end) }, selection: { anchor: e.sel[0], head: e.sel[1] } });
+}
 
 const theme = EditorView.theme({
   "&": { height: "100%", color: "var(--c-text)", backgroundColor: "var(--c-surface)", fontSize: "13px" },
@@ -39,13 +57,13 @@ const colors = HighlightStyle.define([
   { tag: tags.monospace, color: "var(--c-success)" },
 ]);
 
-export default function Editor({ text, onChange, onCursor, onScroll }: Props) {
+export default function Editor({ text, onChange, onCursor, onScroll, onLink, handleRef }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView>(null);
   // the text this editor produced itself; anything else (a reload from disk) replaces the document
   const own = useRef(text);
-  const props = useRef({ onChange, onCursor, onScroll });
-  props.current = { onChange, onCursor, onScroll };
+  const props = useRef({ onChange, onCursor, onScroll, onLink });
+  props.current = { onChange, onCursor, onScroll, onLink };
 
   useEffect(() => {
     const v = new EditorView({
@@ -56,6 +74,14 @@ export default function Editor({ text, onChange, onCursor, onScroll }: Props) {
           history(),
           drawSelection(),
           highlightSelectionMatches(),
+          // ahead of the default keymap: there Mod-i selects the parent syntax node
+          Prec.highest(
+            keymap.of([
+              { key: "Mod-b", run: (v) => (apply(v, "bold"), true) },
+              { key: "Mod-i", run: (v) => (apply(v, "italic"), true) },
+              { key: "Mod-k", run: () => (props.current.onLink(), true) },
+            ]),
+          ),
           keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
           markdown(),
           syntaxHighlighting(colors),
@@ -80,8 +106,20 @@ export default function Editor({ text, onChange, onCursor, onScroll }: Props) {
       props.current.onScroll(s.scrollHeight > s.clientHeight ? s.scrollTop / (s.scrollHeight - s.clientHeight) : 0);
     });
     view.current = v;
+    handleRef.current = {
+      run: (f, arg) => apply(v, f, arg),
+      active: () => {
+        const m = HEADING.exec(v.state.doc.lineAt(v.state.selection.main.head).text);
+        return new Set<Format>([m ? (`h${m[1].length}` as Format) : "p"]);
+      },
+      selectedText: () => v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to),
+      focus: () => v.focus(),
+    };
     v.focus();
-    return () => v.destroy();
+    return () => {
+      handleRef.current = null;
+      v.destroy();
+    };
   }, []);
 
   useEffect(() => {
