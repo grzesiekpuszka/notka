@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, screen, shell, type Rectangle } from "electron";
+import fs from "node:fs/promises";
 import path from "node:path";
 import type { DocMeta, Session, Startup, Theme } from "../src/api";
 import { argPaths, Inbox } from "./args";
@@ -60,6 +61,20 @@ const handlers: Record<string, (args: any) => unknown> = {
     const r = await dialog.showSaveDialog(win!, { defaultPath: name, filters: [{ name: "Markdown", extensions: ["md", "markdown"] }] });
     if (r.canceled || !r.filePath) return null;
     await writeDoc(r.filePath, text, meta);
+    return r.filePath;
+  },
+  // prints the page as it is: the renderer has put the document in a print-only element
+  export_pdf: async ({ name }: { name: string }) => {
+    const r = await dialog.showSaveDialog(win!, { defaultPath: name, filters: [{ name: "PDF", extensions: ["pdf"] }] });
+    if (r.canceled || !r.filePath) return null;
+    // the window's background color would fill the page margins
+    const color = win!.getBackgroundColor();
+    win!.setBackgroundColor("#fff");
+    try {
+      await fs.writeFile(r.filePath, await win!.webContents.printToPDF({ pageSize: "A4", printBackground: true }));
+    } finally {
+      win!.setBackgroundColor(color);
+    }
     return r.filePath;
   },
   pick_image: async () => {

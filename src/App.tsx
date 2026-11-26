@@ -1,10 +1,13 @@
-import { Download, FilePlus, FileType, FolderOpen, Monitor, Moon, RefreshCw, Sun } from "lucide-react";
+import { Download, FileDown, FilePlus, FileType, FolderOpen, Monitor, Moon, RefreshCw, Sun } from "lucide-react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { invoke, on, type FileDoc, type Startup, type Theme, type UpdateState } from "./api";
 import { confirm, DialogHost } from "./Dialog";
 import DocView from "./DocView";
 import Menu from "./Menu";
 import { pendingEdits } from "./format";
+import { highlightAll } from "./highlight";
+import { render } from "./markdown";
+import { dirname } from "./paths";
 import { usePersistence } from "./persist";
 import { setLang, t } from "./i18n";
 import TabBar, { tabName } from "./TabBar";
@@ -105,6 +108,21 @@ export default function App() {
     return true;
   };
 
+  const exportPdf = async (tab: Tab) => {
+    const page = document.createElement("div");
+    page.className = "md print";
+    page.innerHTML = render(pendingEdits.get(tab.id)?.() ?? tab.text, tab.path && dirname(tab.path));
+    document.body.append(page);
+    try {
+      await highlightAll(page);
+      await Promise.all([...page.querySelectorAll("img")].map((img) => img.decode().catch(() => {})));
+      const path = await invoke<string | null>("export_pdf", { name: `${(tab.path ?? tabName(tab)).replace(/\.(md|markdown)$/i, "")}.pdf` });
+      if (path) setToast(t("Exported to {path}", { path }));
+    } finally {
+      page.remove();
+    }
+  };
+
   const close = async (id: string) => {
     const found = current.current.tabs.find((x) => x.id === id);
     if (!found) return;
@@ -190,6 +208,7 @@ export default function App() {
       items={[
         { label: t("New document"), icon: FilePlus, onClick: newDoc },
         { label: t("Open…"), icon: FolderOpen, onClick: () => openDialog().catch(fail) },
+        { label: t("Export to PDF…"), icon: FileDown, onClick: () => tab && exportPdf(tab).catch(fail) },
         "-",
         { heading: t("Theme") },
         ...themes.map(([value, label, icon]) => ({ label: t(label), icon, checked: theme === value, onClick: () => pickTheme(value) })),
